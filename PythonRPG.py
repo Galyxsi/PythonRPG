@@ -483,16 +483,13 @@ class Snake():
             pygame.draw.rect(screen, (color2[0] - (color2[0] - color1[0]) * (i / len(self.snakeBody)), color2[1] - (color2[1] - color1[1]) * (i / len(self.snakeBody)), color2[2] - (color2[2] - color1[2]) * (i / len(self.snakeBody))), (body[0], body[1], 1, 1))
         pygame.draw.rect(screen, applecolor, (self.apple[0], self.apple[1], 1, 1))
 
-        
-
-        pass
 
 
 
 
 clock = pygame.time.Clock()
 
-spr_selected_tile = pygame.image.load('selectedtile.png').convert_alpha()
+#spr_selected_tile = pygame.image.load('selectedtile.png').convert_alpha()
 
 sprsh_tileset = Spritesheet('sprites/tilesets/bgtiles.png', 16, 16)
 
@@ -591,7 +588,8 @@ while True:
         elif pygame.mouse.get_pressed()[2]:
             cur_map.set(round((mouse_x + camera_x) // 16), round((mouse_y + camera_y) // 16), -1)
         else:
-            game_screen.blit(sprsh_tileset.get_image(Debug.map_tile), spr_selected_tile.get_rect(center=(round((mouse_x - 8 + camera_x % 16) / 16) * 16 + 8 - camera_x % 16, round((mouse_y - 8 + camera_y % 16) / 16) * 16 + 8 - camera_y % 16)))
+            spr_selected_tile = sprsh_tileset.get_image(Debug.map_tile)
+            game_screen.blit(spr_selected_tile, spr_selected_tile.get_rect(center=(round((mouse_x - 8 + camera_x % 16) / 16) * 16 + 8 - camera_x % 16, round((mouse_y - 8 + camera_y % 16) / 16) * 16 + 8 - camera_y % 16)))
             #game_screen.blit(pygame.transform.scale(game_screen, (game_screen.get_size()[0] // 16, game_screen.get_size()[1] // 16)), spr_selected_tile.get_rect(center=(round((mouse_x - 8 + camera_x % 16) / 16) * 16 + 8 - camera_x % 16, round((mouse_y - 8 + camera_y % 16) / 16) * 16 + 8 - camera_y % 16)))
             #game_screen.blit(real_screen, spr_selected_tile.get_rect(center=(round((mouse_x - 8 + camera_x % 16) / 16) * 16 + 8 - camera_x % 16, round((mouse_y - 8 + camera_y % 16) / 16) * 16 + 8 - camera_y % 16)))
         
