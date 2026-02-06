@@ -6,6 +6,7 @@ import os
 import math
 import random
 
+import copy
 pygame.init()
 
 game_width, game_height = 256, 240
@@ -27,7 +28,7 @@ class Font:
         "0123456789"
         "[]/\\"
         "\uE000\uE001\uE002\uE004\uE003\uE005\uE006\uE008\uE007\uE009\uE00A\uE00B"
-        " \uE000"
+        " \uE00C"
 
     )
 
@@ -47,13 +48,13 @@ class Font:
     }
 
     COLORS = {
-        ":cRed:": {255,0,0},
-        ":cGreen:": {0,255,0},
-        ":cBlue:": {0,0,255},
-        ":cMagenta:": {255,0,255},
-        ":cCyan:": {0,255,255},
-        ":cYellow:": {255,255,0},
-        ":cWhite:": {255,255,255},
+        ":cRed:": (255,0,0),
+        ":cGreen:": (0,255,0),
+        ":cBlue:": (0,0,255),
+        ":cMagenta:": (255,0,255),
+        ":cCyan:": (0,255,255),
+        ":cYellow:": (255,255,0),
+        ":cWhite:": (255,255,255),
     }
     def __init__(self, image_path, char_w, char_h, chars, cols):
         self.sheet = pygame.image.load("sprites/ui/font/" + image_path).convert_alpha()
@@ -61,7 +62,7 @@ class Font:
         self.char_h = char_h
         self.cols = cols
         self.glyphs = {}
-        self.color_changes = {}
+        self.color_changes = []
 
         for i, char_i in enumerate(chars):
             x = i % cols * char_w
@@ -72,24 +73,37 @@ class Font:
 
         self.fallback = self.glyphs.get("?", pygame.Surface((char_w, char_h), pygame.SRCALPHA))
 
+    def create_colored_glyph(self, char, color):
+        base = self.glyphs.get(char, self.fallback)
+        image = base.copy()
+        for xi in range(image.get_width()):
+            for yi in range (image.get_height()):
+                if image.get_at((xi, yi)) != (0, 0, 0, 0):
+                    image.set_at((xi, yi), (color[0], color[1], color[2], round(abs(max(min(image.get_at((xi, yi))[3] * color[3], 255), 0)))))
+        return image
+
     def draw(self, surface, text, x, y, scale=1, color=(255, 255, 255, 255), spacing=-1, linespacing=8):
+        self.sheet = pygame.image.load("sprites/ui/font/font.png").convert_alpha()
         cx, cy = x, y
-        text = Font.emoji(text)
-        text = self.color(text)
+        altered_text = Font.emoji(text)
+        altered_text = self.color(altered_text, color[3])
+        cur_color = color
         i = 0
-        for char in text:
+        for char in altered_text:
+            #print(self.color_changes)
+            if len(self.color_changes) != 0 and self.color_changes[0]["index"] == i:
+                cur_color = self.color_changes[0]["color"]
+                self.color_changes.pop(0)
             if char == "\n":
                 cx = x
                 cy += (self.ch + linespacing) * scale
                 continue
-            image = self.glyphs.get(char, self.fallback)
+            base = self.glyphs.get(char, self.fallback)
+            image = base
+
             image.set_alpha(color[3])
-            if color != (255, 255, 255, 255):
-                for xi in range(image.get_width()):
-                    for yi in range (image.get_height()):
-                        if image.get_at((xi, yi)) != (0, 0, 0, 0):
-                            image.set_at((xi, yi), (color[0], color[1], color[2], image.get_at((xi, yi))[3]))
-            #if i == 
+            if cur_color != (255, 255, 255, 255):
+                image = self.create_colored_glyph(char, cur_color)
             if scale == 1:
                 surface.blit(image, (cx, cy))
             else:
@@ -101,18 +115,40 @@ class Font:
         for emote, char in Font.PUA.items():
             text = text.replace(emote, char)
         return text
-    def color(self, text):
+    def color(self, text, opacity):
         for color, rgb in Font.COLORS.items():
+            #print(Font.COLORS[color])
             index = text.find(color)
             if index != -1:
-                self.color_changes.append({"color": rbg, "index": index})
+                self.color_changes.append({"color": (rgb[0], rgb[1], rgb[2], opacity), "index": index})
+                #self.color_changes[len(self.color_changes)] = {"color": (rgb[0], rgb[1], rgb[2], opacity), "index": index}
             text = text.replace(color, "\uE00C")
-        if len(self.color_changes) > 0:
-            self.color_changes.sort(key="index")
+        #if len(self.color_changes) > 0:
+            #sorted(self.color_changes.items(), key=lambda item: item[1])
+            #print(self.color_changes)
+            #self.color_changes.sort(key="index")
         return text
     
 class Spritesheet:
-    def __init__(self, filename, frame_width, frame_height):
+
+    '''
+    Example Anim Data
+
+    (
+    # Frame 1 tiles list
+    # Frame 2 tiles list, corresponding to frame 1
+    # Frame n tiles list, corresponding to frame n-1
+    )
+
+    (
+    [16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31],
+    [32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47],
+    [48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63]
+    )
+
+    '''
+
+    def __init__(self, filename, frame_width, frame_height, anim_data=None):
 
         self.frame_width = frame_width
         self.frame_height = frame_height
@@ -126,19 +162,39 @@ class Spritesheet:
         self.image_rows = self.image_height // self.frame_height
         self.frame_count = self.image_cols * self.image_rows
 
-    def get_image(self, frame_num):
+        self.anim_data = anim_data
+
+        self.extra_data = {}
+        
+        if os.path.exists(filename.split(".")[0] + ".json"):
+            with open(filename.split(".")[0] + ".json", "r") as f:
+                self.extra_data = json.load(f)
+
+    def get_image(self, frame_num, anim_frame=0):
         frame_num %= self.frame_count
+        if self.anim_data != None and frame_num in self.anim_data[0]:
+            anim_frame %= len(self.anim_data[0])
+            frame_num = self.anim_data[anim_frame][self.anim_data[anim_frame].index(frame_num)]
         image = pygame.Surface((self.frame_width, self.frame_height), pygame.SRCALPHA).convert_alpha()
+        x = frame_num % self.image_cols * self.frame_width 
+        y = frame_num // self.image_cols * self.frame_height
+
+        image.blit(self.sheet, (0, 0), (x , y, self.frame_width, self.frame_height))
+        return image
+    def get_image_xy(self, col, row, anim_frame=0):
+        if self.anim_data != None and col + row * self.image_cols in self.anim_data[0]:
+            anim_frame %= len(self.anim_data[0])
+            frame_num = self.anim_data[anim_frame][self.anim_data[anim_frame].index(frame_num)]
+        else:
+            frame_num = col + row * self.image_cols
         x = frame_num % self.image_cols * self.frame_width
         y = frame_num // self.image_cols * self.frame_height
-        image.blit(self.sheet, (0, 0), (x, y, self.frame_width, self.frame_height))
-        return image
-    def get_image_xy(self, col, row):
-        x = col * self.frame_width
-        y = row * self.frame_height
         image = pygame.Surface((self.frame_width, self.frame_height), pygame.SRCALPHA).convert_alpha()
         image.blit(self.sheet, (0, 0), (x, y, self.frame_width, self.frame_height))
         return image
+    
+    def get_extra_data(self, key):
+        return self.extra_data.get(key, None)
     
 class LayeredSprite():
 
@@ -171,6 +227,7 @@ class Debug:
     map_editor = True
     map_tile = 0
     debug_message_fade = 60
+    editorMapMode = "Visual"
 
     font = None
 
@@ -184,18 +241,20 @@ class Debug:
     def debug_print(text, time=debug_message_fade):
         time = max(1, time)
         if Debug.debug_messages:
-            print(text + " (" + str(time) + ")")
+            #print(text + " (" + str(time) + ")")
             Debug.debug_messages_list.append({"text": text, "time": 0, "time_limit": time})
 
     def render_debug_text():
+        #print(Debug.debug_messages_list)
         if len(Debug.debug_messages_list) == 0 or Debug.font == None:
             return
         for i in range(len(Debug.debug_messages_list)):
+            
             Debug.debug_messages_list[i]["time"] += 1
             Debug.debug_messages_list[i]["time_limit"] = max(1, Debug.debug_messages_list[i]["time_limit"])
             Debug.font.draw(game_screen, ":right:" + Debug.debug_messages_list[i]["text"], 0, i * 16, 1, (255, 255, 255, 255 - (Debug.debug_messages_list[i]["time"] / Debug.debug_messages_list[i]["time_limit"]) * 255))
             
-        for i in range(len(Debug.debug_messages_list)):
+        for i in range(len(Debug.debug_messages_list) - 1, -1, -1):
             if Debug.debug_messages_list[i]["time"] > Debug.debug_messages_list[i]["time_limit"]:
                 del Debug.debug_messages_list[i]
                 break
@@ -228,40 +287,179 @@ class Map:
         4: {"name": "rough", "move": 2, "block": False},
         5: {"name": "wall", "move": 0, "block": True},
     }
+    
+    dualTileFormat = {
+        (1,1,0,1): 0,
+        (1,0,1,0): 1,
+        (0,1,0,0): 2,
+        (1,1,0,0): 3,
+        (0,1,1,0): 4,
+        (1,0,0,0): 5,
+        (0,0,0,0): 6,
+        (0,0,0,1): 7,
+        (1,0,1,1): 8,
+        (0,0,1,1): 9,
+        (0,0,1,0): 10,
+        (0,1,0,1): 11,
+        (1,1,1,1): 12,
+        (1,1,1,0): 13,
+        (1,0,0,1): 14,
+        (0,1,1,1): 15
+    }
+    defaultDualTilemap = Spritesheet("sprites/tilesets/testtiles2.png", 16, 16)
+
 
     def __init__(self, width, height):
         self.width = width
         self.height = height
         self.map = [-1] * (self.width * self.height)
-    def idx(self, x, y):
-        if x < 0 or y < 0 or x >= self.width or y >= self.height:
-            return None
-        return x + y * self.width
+        #self.dualLogMapA = [[random.randint(0,8) for _ in range(self.width + 1)] for _ in range(self.height + 1)]
+        self.dualLogMapA = [[0 for _ in range(self.width + 1)] for _ in range(self.height + 1)]
+        self.dualVisMapA = [[0 for _ in range(self.width + 1)] for _ in range(self.height + 1)]
+        
+        self.showVisTiles = True
+        
+        self.cur_total_tiles = 0
+        self.cur_tile_indices = []
+        
+        self.bg_color = (0,0,0)
+
+    def idx(self, x, y, tilemap_type="Logic"):
+        if tilemap_type == "Logic":
+            if x < 0 or y < 0 or x >= self.width or y >= self.height:
+                return None
+            return x + y * self.width
+        elif tilemap_type == "Visual":
+            if x < -1 or y < -1 or x >= len(self.dualLogMapA[0]) or y >= len(self.dualLogMapA):
+                return None
+            return (x, y)
     
     def get(self, x, y, default=-1):
         if self.idx(x, y) == None:
             return default
         return self.map[self.idx(x, y)]
     
-    def set(self, x, y, value):
-        if self.idx(x, y) == None:
+    def set(self, x, y, value, tilemap_type="Logic"):
+        if self.idx(x,y,tilemap_type) == None:
             return False
-        self.map[self.idx(x, y)] = value
-        return True
+        if tilemap_type == "Logic":
+            self.map[self.idx(x, y)] = value
+            return True
+        elif tilemap_type == "Visual":
+            self.dualLogMapA[y][x] = value
 
-    def render(self, surface, tileset, cam_x, cam_y, tile_size=16):
-        start_x = max(0, cam_x // tile_size)
-        end_x = min(self.width, (cam_x + game_width) // tile_size + 1)
+    def dualVismapUpdate(self, anim_frame, tileset, bounds=(0, 0, 0, 0)):
+        autotiles_info = tileset.get_extra_data("autotiles")
+        if autotiles_info != None:
+            autotiles_info.sort(key=lambda x: x["id"])
+        for y in range(len(self.dualLogMapA)):
+            for x in range(len(self.dualLogMapA[0])):
+                if not (bounds[0] <= x < bounds[1] and bounds[2] <= y < bounds[3]):
+                    continue
+                
+                if x == -1 or y == -1:
+                    grid1 = 0
+                else:
+                    grid1 = self.dualLogMapA[y-1][x-1]
 
-        start_y = max(0, cam_y // tile_size)
-        end_y = min(self.height, (cam_y + game_height) // tile_size + 1)
+                if x == len(self.dualLogMapA[0]) or y == -1:
+                    grid2 = 0
+                else:
+                    grid2 = self.dualLogMapA[y-1][x]
+
+                if x == -1 or y == len(self.dualLogMapA):
+                    grid3 = 0
+                else:
+                    grid3 = self.dualLogMapA[y][x-1]
+
+                if x == len(self.dualLogMapA[0]) or y == len(self.dualLogMapA):
+                    grid4 = 0
+                else:
+                    grid4 = self.dualLogMapA[y][x]
+                
+                tileGrid = (grid1,grid2,grid3,grid4)
+
+                
+                self.cur_tile_indices = []
+                self.dualVisMapA[y][x] = {}
+                if autotiles_info != None:
+                    self.cur_total_tiles = len(autotiles_info)
+                    #print(autotiles_info)
+                    for i in range(len(autotiles_info)):
+                
+                        mask = (
+                            1 if i == grid1 else 0,
+                            1 if i == grid2 else 0,
+                            1 if i == grid3 else 0,
+                            1 if i == grid4 else 0
+                        )
+                        if grid1 == 0 or grid2 == 0 or grid3 == 0 or grid4 == 0:
+                            self.dualVisMapA[y][x][-1] = autotiles_info[i]["bg-tile"]
+                        
+                        if autotiles_info[i]["type"] == "autotile":
+                            shape = self.dualTileFormat.get(mask, 0)
+                            if shape != 6:
+                                tile_index = shape + autotiles_info[i]["start-tile"] 
+                            else:
+                                tile_index = -1
+                            self.cur_tile_indices.append(autotiles_info[i]["start-tile"] + 6)
+
+                        elif autotiles_info[i]["type"] == "single" :
+                            if mask != (0,0,0,0):
+                                tile_index = autotiles_info[i]["start-tile"]
+                            else:
+                                tile_index = -1
+                            #print(autotiles_info[i]["start-tile"])
+                            self.cur_tile_indices.append(autotiles_info[i]["start-tile"])
+                        else:
+                            tile_index = -1
+                            
+                        if "anim-offset" in autotiles_info[i] and "anim-time" in autotiles_info[i] and tile_index != -1:
+                            if round(anim_frame / autotiles_info[i]["anim-time"]) % 2 == 0:
+                                tile_index += autotiles_info[i]["anim-offset"]
+                            
+                        if tile_index != -1:
+                            self.dualVisMapA[y][x][i] = tile_index
+                        
+                        
+                else:
+                    mask = (grid1, grid2, grid3, grid4)
+                    tile_index = self.dualTileFormat.get(mask, 6)
+                    self.dualVisMapA[y][x][0] = tile_index
+                #print(self.dualVisMapA[y][x])
+
+    def render(self, surface, tileset, cam_x, cam_y, anim_frame=0, tile_size=16):
+        
+        
+        start_x = max(-1, (cam_x - tile_size) // tile_size)
+        end_x = min(self.width, (cam_x + game_width + tile_size) // tile_size)
+
+        start_y = max(-1, (cam_y - tile_size) // tile_size)
+        end_y = min(self.height, (cam_y + game_height + tile_size) // tile_size)
+
+        self.dualVismapUpdate(anim_frame, tileset, (start_x, end_x, start_y, end_y)) 
 
         for y in range(start_y, end_y):
             for x in range(start_x, end_x):
-                tile = self.get(x, y)
-                if tile != -1:
-                    surface.blit(tileset.get_image(tile), (x * tile_size - cam_x, y * tile_size - cam_y))
+                    if self.showVisTiles:
+                        #if x == max(0,min(x, self.width)) and y == max(0, min(y, self.height)):
+                        if x < self.width and y < self.height:
+                            tiles = self.dualVisMapA[y + 1][x + 1]
+                        #print(tiles)
+                        if tiles != 0 and tiles != None:
+                            for i in tiles:
+                                #print(str(tileset.get_image(i, anim_frame)))
+                                #print(tiles)
+                                surface.blit(tileset.get_image(tiles[i], anim_frame), (tile_size/2 + x * tile_size - cam_x,tile_size/2 + y * tile_size - cam_y))
+                    else:   
+                        if x == max(0, min(x, self.width)) and y == max(0, min(y, self.height)):
+                            tile = self.get(x, y)
+                            if tile != -1:
+                                surface.blit(tileset.get_image(tile, anim_frame), (x * tile_size - cam_x, y * tile_size - cam_y))
 
+    def render_overlay(self, surface):
+        pass
+    
     def rle_encode_row(row):
         encoded = []
         last = row[0]
@@ -307,17 +505,29 @@ class Map:
 
         return flat_map
     
+    def rle_encode_tilemap(map):
+        encoded_map = []
+        for row in map:
+            encoded_map.append(Map.rle_encode_row(row))
+        return encoded_map
     
+    def rle_decode_tilemap(encoded_map):
+        decoded_map = []
+        for encoded_row in encoded_map:
+            decoded_map.append(Map.rle_decode_row(encoded_row))
+        return decoded_map
+
 
     def to_list(self, name):
         return {
-            "version": 2,
+            "version": 3,
             "name": name,
             "width": self.width,
             "height": self.height,
             "map": Map.rle_encode_map(self.map, self.width, self.height),
             "tilemap": "",
-            "tilemap_tiles": {},
+            "tilemap_tiles": Map.rle_encode_tilemap(self.dualLogMapA),
+            "bg-color": self.bg_color,
             "units": [],
             "objects": [],
         }
@@ -333,6 +543,15 @@ class Map:
                 self.width,
                 self.height
             )
+        elif data["version"] == 3:
+            self.map = Map.rle_decode_map(
+                data["map"],
+                self.width,
+                self.height
+            )
+            self.dualLogMapA = Map.rle_decode_tilemap(data["tilemap_tiles"])
+            self.bg_color = data["bg-color"]
+        
 
     
     @staticmethod
@@ -353,14 +572,14 @@ class Map:
     @staticmethod
     def load(filename):
         if not os.path.exists("maps/" + filename + ".json"):
-            Debug.debug_print(":emptybox: Failed to load map " + filename + ".json", 200)
+            Debug.debug_print(":cRed::emptybox::cWhite: Failed to load map " + filename + ".json", 200)
             filename = "!default_test_map"
         with open("maps/" + filename + ".json", "r") as f:
             loadedMap = json.load(f)
             Debug.debug_print(":checkbox: Loaded map " + loadedMap["name"], 200)
             
             if len(Map.map_from_list(loadedMap).map) != loadedMap["width"] * loadedMap["height"]:
-                Debug.debug_print(":emptybox: Map has invalid dimensions or missing tiles", 2000)
+                Debug.debug_print(":cRed::emptybox::cWhite: Map has invalid dimensions or missing tiles", 2000)
 
             return Map.map_from_list(loadedMap)
         
@@ -393,12 +612,6 @@ class Snake():
         self.started = False
         self.textFade = 0
 
-        #mini_snake_screen.fill((255,255,255))
-        #pygame.draw.rect(mini_snake_screen, (0,0,0), (self.snakeHead[0], self.snakeHead[1], 1, 1))
-        #for body in self.snakeBody:
-        #    pygame.draw.rect(mini_snake_screen, (0,0,0), (body[0], body[1], 1, 1))
-        #pygame.draw.rect(mini_snake_screen, (0,0,0), (self.apple[0], self.apple[1], 1, 1))
-    
     def reset(self):
         self.snakeBody = []
         self.snakeBodyLength = 5
@@ -423,7 +636,7 @@ class Snake():
             self.started = True
             self.dir = 0
 
-        if frame % 3 != 0 or not self.started:
+        if frame % 5 != 0 or not self.started:
             return
 
         self.curDir = self.dir
@@ -447,12 +660,16 @@ class Snake():
 
         if self.snakeHead[0] < 0:
             self.snakeHead = (31, self.snakeHead[1])
+            self.reset()
         elif self.snakeHead[0] > 31:
             self.snakeHead = (0, self.snakeHead[1])
+            self.reset()
         elif self.snakeHead[1] < 0:
-            self.snakeHead = (self.snakeHead[0], 31)        
+            self.snakeHead = (self.snakeHead[0], 31) 
+            self.reset()
         elif self.snakeHead[1] > 31:
             self.snakeHead = (self.snakeHead[0], 0)
+            self.reset()
 
         if self.snakeHead == self.apple:
             for i in range(32 * 32):
@@ -491,7 +708,7 @@ clock = pygame.time.Clock()
 
 #spr_selected_tile = pygame.image.load('selectedtile.png').convert_alpha()
 
-sprsh_tileset = Spritesheet('sprites/tilesets/bgtiles.png', 16, 16)
+sprsh_tileset = Spritesheet('sprites/tilesets/testtiles2.png', 16, 16)
 
 markers_full = Spritesheet('markers.png', 16, 32)
 markers_icons = Spritesheet('markers.png', 16, 16)
@@ -505,13 +722,15 @@ cur_map = Map(map_width, map_height)
 
 frame = 0
 
-cur_map = Map.load("!default_test_map")
+cur_map = Map.load("!temp_save")
 
 cabinet = pygame.image.load("sprites/arcades/snake_cabinet.png").convert_alpha()
 cabinet_curPos = (0,256)
 cabinet_pos = (0,256)
 
 snek = Snake()
+
+last_few_maps = []
 
 while True:
 
@@ -544,14 +763,20 @@ while True:
                 exit()
             if Debug.map_editor:
                 if event.key == pygame.K_0:
-                    Debug.map_tile = 0
-                    Debug.debug_print("Set tile to [" + Map.tiles[0]["name"] + "]")
+                    Debug.editorMapMode = "Logic"
+                    cur_map.showVisMap = False
+
                 elif event.key == pygame.K_1:
-                    Debug.map_tile = 1
-                    Debug.debug_print("Set tile to [" + Map.tiles[1]["name"] + "]")
+                    Debug.editorMapMode = "Visual"
+                    cur_map.showVisMap = True
+
                 elif event.key == pygame.K_2:
-                    Debug.map_tile = 2
-                    Debug.debug_print("Set tile to [" + Map.tiles[2]["name"] + "]")
+                    Debug.map_tile += 1
+                    if Debug.editorMapMode == "Logic":
+                        Debug.map_tile %= len(Map.tiles)
+                    elif Debug.editorMapMode == "Visual":
+                        Debug.map_tile %= cur_map.cur_total_tiles
+                    Debug.debug_print("Set tile to [" + Map.tiles[Debug.map_tile]["name"] + "]")
                 elif event.key == pygame.K_3:
                     Debug.map_tile = 3
                     Debug.debug_print("Set tile to [" + Map.tiles[3]["name"] + "]")
@@ -561,34 +786,68 @@ while True:
                 elif event.key == pygame.K_5:
                     Debug.map_tile = 5
                     Debug.debug_print("Set tile to [" + Map.tiles[5]["name"] + "]")
-                elif event.key == pygame.K_F1:
+                elif event.key == pygame.K_r:
                     cur_map.save("_temp_save", "Local Save")
-                elif event.key == pygame.K_F2:
+                elif event.key == pygame.K_f:
                     if cabinet_pos == (0, 0):
                         cabinet_pos = (0, 256)
                     else:
                         cabinet_pos = (0, 0)
+                elif event.key == pygame.K_y:
+                    cur_map.showVisTiles = not cur_map.showVisTiles
+                    if Debug.editorMapMode == "Logic":
+                        Debug.editorMapMode = "Visual"
+                    elif Debug.editorMapMode == "Visual":
+                        Debug.editorMapMode = "Logic"
+                    if cur_map.showVisTiles:
+                        sprsh_tileset = Spritesheet('sprites/tilesets/testtiles2.png', 16, 16)
+                    else:
+                        sprsh_tileset = Spritesheet('sprites/tilesets/bgtiles.png', 16, 16)
+
+                elif event.key == pygame.K_KP_6:
+                    last_few_maps.append(copy.deepcopy(cur_map))
+                    cur_map.dualLogMapA = [[random.randint(0,2) for _ in range(cur_map.width + 1)] for _ in range(cur_map.height + 1)] 
+                elif event.key == pygame.K_KP_9:
+                    #print(last_few_maps)
+                    if len(last_few_maps) > 0:
+                        cur_map = last_few_maps.pop()
         if event.type == pygame.MOUSEWHEEL:
             if Debug.map_editor:
                 Debug.map_tile += event.y
-                Debug.map_tile %= len(Map.tiles)
-                Debug.debug_print("Set tile to [" + Map.tiles[Debug.map_tile]["name"] + "]")
+                #Debug.map_tile %= len(Map.tiles)
+                #Debug.debug_print("Set tile to [" + Map.tiles[Debug.map_tile]["name"] + "]")
         if event.type == pygame.VIDEORESIZE:
             real_screen = pygame.display.set_mode(event.size, pygame.RESIZABLE)
 
-    game_screen.fill((255, 0, 255))
+         
+        if Debug.editorMapMode == "Visual":
+            if cur_map.cur_total_tiles != 0:
+                Debug.map_tile %= cur_map.cur_total_tiles
+        elif Debug.editorMapMode == "Logic":
+            if len(Map.tiles) != 0:
+                Debug.map_tile %= len(Map.tiles)
+
+    #game_screen.fill((255, 0, 255))
+    game_screen.fill(cur_map.bg_color)
     
-    cur_map.render(game_screen, sprsh_tileset, camera_x, camera_y)
+    
+    cur_map.render(game_screen, sprsh_tileset, camera_x, camera_y, frame)
     
     #game_screen.blit(spr_selected_tile, spr_selected_tile.get_rect(center=(round((mouse_x - 8) / 16) * 16 + 8, round((mouse_y - 8) / 16) * 16 + 8)))
     
     if Debug.map_editor:
         if pygame.mouse.get_pressed()[0]:
-            cur_map.set(round((mouse_x + camera_x) // 16), round((mouse_y + camera_y) // 16), Debug.map_tile)
+            #print(cur_map.dualLogMapA)
+            cur_map.set(round((mouse_x + camera_x) // 16), round((mouse_y + camera_y) // 16), Debug.map_tile, Debug.editorMapMode)
         elif pygame.mouse.get_pressed()[2]:
-            cur_map.set(round((mouse_x + camera_x) // 16), round((mouse_y + camera_y) // 16), -1)
+            if Debug.editorMapMode == "Logic":
+                cur_map.set(round((mouse_x + camera_x) // 16), round((mouse_y + camera_y) // 16), -1, Debug.editorMapMode)
         else:
             spr_selected_tile = sprsh_tileset.get_image(Debug.map_tile)
+            if Debug.editorMapMode == "Visual":
+                if Debug.map_tile <= len(cur_map.cur_tile_indices):
+                    
+                    spr_selected_tile = sprsh_tileset.get_image(cur_map.cur_tile_indices[Debug.map_tile])
             game_screen.blit(spr_selected_tile, spr_selected_tile.get_rect(center=(round((mouse_x - 8 + camera_x % 16) / 16) * 16 + 8 - camera_x % 16, round((mouse_y - 8 + camera_y % 16) / 16) * 16 + 8 - camera_y % 16)))
             #game_screen.blit(pygame.transform.scale(game_screen, (game_screen.get_size()[0] // 16, game_screen.get_size()[1] // 16)), spr_selected_tile.get_rect(center=(round((mouse_x - 8 + camera_x % 16) / 16) * 16 + 8 - camera_x % 16, round((mouse_y - 8 + camera_y % 16) / 16) * 16 + 8 - camera_y % 16)))
             #game_screen.blit(real_screen, spr_selected_tile.get_rect(center=(round((mouse_x - 8 + camera_x % 16) / 16) * 16 + 8 - camera_x % 16, round((mouse_y - 8 + camera_y % 16) / 16) * 16 + 8 - camera_y % 16)))

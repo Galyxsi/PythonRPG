@@ -1,0 +1,80 @@
+{
+    "name": "Test Tiles 2",
+    "starting-frames": 4,
+    "autotiles":
+        [
+            {
+                "name": "Cover",
+                "start-tile": 1,
+                "type": "single",
+                "bg-tile": 0,
+                "id": 2
+            },
+            {
+                "name": "Rough",
+                "start-tile": 2,
+                "type": "single",
+                "bg-tile": 0,
+                "id": 1
+            },
+            {
+                "name": "Grass",
+                "start-tile": 0,
+                "type": "single",
+                "bg-tile": 0,
+                "id": 0
+            },
+            
+            {
+                "name": "Dirt",
+                "start-tile": 4,
+                "type": "autotile",
+                "bg-tile": 0,
+                "id": 3
+            },
+            {
+                "name": "Water",
+                "start-tile": 20,
+                "type": "autotile",
+                "bg-tile": 0,
+                "anim-offset": 16,
+                "anim-frames": 1,
+                "anim-time": 60,
+                "id": 4
+            },
+            {
+                "name": "Lava",
+                "start-tile": 68,
+                "type": "autotile",
+                "bg-tile": 0,
+                "anim-offset": 16,
+                "anim-frames": 1,
+                "anim-time": 120,
+                "id": 5
+            },
+            {
+                "name": "Wall",
+                "start-tile": 52,
+                "type": "autotile",
+                "bg-tile": 0,
+                "id": 100
+            },
+            {
+                "name": "Rough-Auto",
+                "start-tile": 100,
+                "type": "autotile",
+                "bg-tile": 0,
+                "id": 6
+            },
+            {
+                "name": "Cover-Auto",
+                "start-tile": 116,
+                "type": "autotile",
+                "bg-tile": 0,
+                "id": 7
+            }
+            
+        ]
+    
+    
+}
