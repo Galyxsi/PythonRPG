@@ -20,6 +20,17 @@ mini_snake_screen = pygame.Surface((32,32))
 pygame.display.set_caption("PythonRPG")
 
 
+'''
+Wow, 800+ lines in and I'm writing this just after finishing part 1.
+=================================================
+|                                               |
+|                   ENGINE                      |
+|                                               |
+|       Map, Font, Sprite Handlers, Etc.        |
+|                                               |
+|                                               |
+=================================================
+'''
 class Font:
     characters = (
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -196,7 +207,7 @@ class Spritesheet:
     def get_extra_data(self, key):
         return self.extra_data.get(key, None)
     
-class LayeredSprite():
+class LayeredSprite:
 
     sprite_list = [{"sprite": None, "color": None, "layer": 0}]
 
@@ -588,8 +599,121 @@ class Map:
         for f in os.listdir("maps/"):
             if f.startswith("_"):
                 os.remove("maps/" + f)
+                
+
+
+
+
+'''
+Phase 2, initiated.
+=================================================
+|                                               |
+|                  GAMEPLAY                     |
+|                                               |
+|      Characters, Players, Enemies, etc.       |
+|                                               |
+|                                               |
+=================================================
+'''
+
+class AStar:
+    @staticmethod
+    def Pathfind(startCoordinates, end, tiles, move_type="8-dir"):
+        openList = []
+        closedList = []
         
-class Snake():
+        openList.append({"x": startCoordinates[0], "y": startCoordinates[1], "f": 0, "g": 0, "h":0, "p": None})
+        
+        W = tiles.width
+        H = tiles.height
+
+        def in_bounds(x, y):
+            return 0 <= x < W and 0 <= y < H
+        
+        def is_blocked(x, y):
+            return tiles.get(x, y) == 5
+        
+        def heuristic(x, y):
+            if move_type == "4-dir":
+                return abs(x - end[0]) + abs(y - end[1])
+            else:
+                return math.sqrt(abs(x - end[0])**2 + abs(y - end[1])**2)
+            
+        def neighbors(x, y):
+            out = []
+            for dx in range(-1, 2):
+                for dy in range(-1, 2):
+                    if dx == 0 and dy == 0:
+                        continue
+                    if move_type == "4-dir" and dx != 0 and dy != 0:
+                        continue
+                    out.append((x + dx, y + dy, dx, dy))
+            return out
+        
+        while openList:
+            #print(sorted(openList, key=lambda x: x["f"]))
+            openList = sorted(openList, key=lambda x: x["f"])
+            curNode = openList.pop(0)
+            curKey = (curNode["x"], curNode["y"])
+    
+            if curKey in closedList:
+                continue
+            closedList.append(curKey)
+
+            if curKey == end:
+                path = []
+                n = curNode
+                while n is not None:
+                    path.append((n["x"], n["y"]))
+                    n = n["p"]
+                path.reverse()
+                return path
+
+            for nx, ny, dx, dy in neighbors(curNode["x"], curNode["y"]):
+                if not in_bounds(nx, ny) or is_blocked(nx, ny):
+                    continue
+                step_cost = 1
+                g_cost = curNode["g"] + step_cost
+                h_cost = heuristic(nx, ny)
+                f_cost = g_cost + h_cost
+
+                worse = False
+                for node in openList:
+                    if node["x"] == nx and node["y"] == ny and g_cost >= node["g"]:
+                        worse = True
+                        break
+                if worse:
+                    continue
+
+                openList.append({"x": nx, "y": ny, "f": f_cost, "g": g_cost, "h": h_cost, "p": curNode})
+            
+                
+        return None
+        #print(closedList)
+                        
+
+class Character:
+    
+    def __init__(self, pos=(0,0), sheet=Spritesheet("sprites/characters/placeholderNew.png", 16,16)):
+        self.x = pos[0]
+        self.y = pos[1]
+        self.sheet = sheet
+        
+
+
+'''
+snek
+=================================================
+|                                               |
+|                   ARCADE                      |
+|                                               |
+|       Snek                                    |
+|                                               |
+|                                               |
+=================================================
+'''
+
+class Snake:
     snakeBody = []
     validLocations = []
 
@@ -722,7 +846,7 @@ cur_map = Map(map_width, map_height)
 
 frame = 0
 
-cur_map = Map.load("!temp_save")
+cur_map = Map.load("ai_testing/!dungeon")
 
 cabinet = pygame.image.load("sprites/arcades/snake_cabinet.png").convert_alpha()
 cabinet_curPos = (0,256)
@@ -732,8 +856,9 @@ snek = Snake()
 
 last_few_maps = []
 
-while True:
+path = None
 
+while True:
     pygame.display.set_icon(mini_snake_screen)
     cabinet_curPos = (cabinet_curPos[0] + (cabinet_pos[0] - cabinet_curPos[0]) * 0.1, cabinet_curPos[1] + (cabinet_pos[1] - cabinet_curPos[1]) * 0.1)
 
@@ -774,12 +899,14 @@ while True:
                     Debug.map_tile += 1
                     if Debug.editorMapMode == "Logic":
                         Debug.map_tile %= len(Map.tiles)
+                        Debug.debug_print("Set tile to [" + Map.tiles[Debug.map_tile]["name"] + "]")
                     elif Debug.editorMapMode == "Visual":
                         Debug.map_tile %= cur_map.cur_total_tiles
-                    Debug.debug_print("Set tile to [" + Map.tiles[Debug.map_tile]["name"] + "]")
+                    
                 elif event.key == pygame.K_3:
-                    Debug.map_tile = 3
-                    Debug.debug_print("Set tile to [" + Map.tiles[3]["name"] + "]")
+                    path = AStar.Pathfind((1,1), ((mouse_x + camera_x) // 16, (mouse_y + camera_y) // 16), cur_map)
+                    
+                    
                 elif event.key == pygame.K_4:
                     Debug.map_tile = 4
                     Debug.debug_print("Set tile to [" + Map.tiles[4]["name"] + "]")
@@ -876,6 +1003,19 @@ while True:
     Debug.render_debug_text()
 
     clock.tick(60)
+    
+    #if path == None:
+        
+    path = AStar.Pathfind((1,1), ((mouse_x + camera_x) // 16, (mouse_y + camera_y) // 16), cur_map)   
+
+    if path != None:
+        #print(path)
+        
+        for i in path:
+            #print(i)
+            #marker.draw(i["x"] * 16 - camera_x, i["y"] * 16 - camera_y - 16)
+            game_screen.blit(pygame.image.load("sprites/characters/placeholderNew.png"), (i[0] * 16 - camera_x, i[1] * 16 - camera_y))
+        
 
     game_screen.blit(cabinet, cabinet_curPos)
 
