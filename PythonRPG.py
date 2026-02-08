@@ -7,6 +7,7 @@ import math
 import random
 
 import copy
+
 pygame.init()
 
 game_width, game_height = 256, 240
@@ -207,6 +208,22 @@ class Spritesheet:
     def get_extra_data(self, key):
         return self.extra_data.get(key, None)
     
+class AdvancedSpritesheet():
+
+    def __init__(self, filename):
+        self.image = None
+        self.data = None
+        if os.path.exists(filename):
+            with open(filename, "r") as f:
+                self.image = pygame.image.load(filename).convert_alpha()
+        if os.path.exists(filename.split(".")[0] + ".xml"):
+            with open(filename.split(".")[0] + ".xml", "r") as f:
+                self.data = f.read()
+                #print(self.data)
+
+    def loadXML(self, xml):
+        pass
+
 class LayeredSprite:
 
     sprite_list = [{"sprite": None, "color": None, "layer": 0}]
@@ -698,6 +715,9 @@ class Character:
         self.x = pos[0]
         self.y = pos[1]
         self.sheet = sheet
+
+    
+
         
 
 
@@ -720,6 +740,9 @@ class Snake:
     snakeColors = [
         [(0,90,0), (50,200,50), (255,0,0), (255,255,255), (0,0,0)],
         [(95,123,118), (135,157,163), (95,123,118), (135,157,163), (50,57,70)],
+        [(255, 0, 255), (255, 100, 255), (255, 0, 255), (255, 100, 255), (50, 0, 50)],
+        [(0, 255, 255), (100, 255, 255), (0, 255, 255), (100, 255, 255), (0, 50, 50)],
+        [(255, 255, 0), (255, 255, 100), (255, 255, 0), (255, 255, 100), (50, 50, 0)],
     ]
 
     font = Font("arcadefont.png", 3,4, "1234567890", 5)
@@ -846,7 +869,22 @@ cur_map = Map(map_width, map_height)
 
 frame = 0
 
-cur_map = Map.load("ai_testing/!dungeon")
+map_list = [
+    "!default_test_map",
+    "!lines",
+    "ai_testing/!river_outpost",
+    "ai_testing/!demo16x16",
+    "ai_testing/!windsurf_test",
+    "ai_testing/!island_outpost",
+    "ai_testing/!custom_island",
+    "ai_testing/!ruined_courtyard32x32",
+    "ai_testing/!custom_map_rle",
+    "ai_testing/!custom64",
+    "ai_testing/!obsidian_oasis",
+    "ai_testing/!dungeon"
+]
+curMapID = 0
+cur_map = Map.load(map_list[curMapID])
 
 cabinet = pygame.image.load("sprites/arcades/snake_cabinet.png").convert_alpha()
 cabinet_curPos = (0,256)
@@ -857,6 +895,8 @@ snek = Snake()
 last_few_maps = []
 
 path = None
+
+test = AdvancedSpritesheet("BOYFRIEND.png")
 
 while True:
     pygame.display.set_icon(mini_snake_screen)
@@ -908,8 +948,8 @@ while True:
                     
                     
                 elif event.key == pygame.K_4:
-                    Debug.map_tile = 4
-                    Debug.debug_print("Set tile to [" + Map.tiles[4]["name"] + "]")
+                    curMapID += 1
+                    cur_map = Map.load(map_list[curMapID % len(map_list)])
                 elif event.key == pygame.K_5:
                     Debug.map_tile = 5
                     Debug.debug_print("Set tile to [" + Map.tiles[5]["name"] + "]")
@@ -1005,9 +1045,9 @@ while True:
     clock.tick(60)
     
     #if path == None:
-        
+    '''    
     path = AStar.Pathfind((1,1), ((mouse_x + camera_x) // 16, (mouse_y + camera_y) // 16), cur_map)   
-
+    '''
     if path != None:
         #print(path)
         
@@ -1015,7 +1055,7 @@ while True:
             #print(i)
             #marker.draw(i["x"] * 16 - camera_x, i["y"] * 16 - camera_y - 16)
             game_screen.blit(pygame.image.load("sprites/characters/placeholderNew.png"), (i[0] * 16 - camera_x, i[1] * 16 - camera_y))
-        
+    
 
     game_screen.blit(cabinet, cabinet_curPos)
 
