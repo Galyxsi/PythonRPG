@@ -1,0 +1,18 @@
+{
+  "id": "osa",
+  "first_name": "New",
+  "mid_name": "",
+  "last_name": "",
+  "sprite": "sprites/characters/playable/new.png",
+  "stats": { 
+    "hp": {"base": 38, "enhanced": true},
+    "atk": {"base": 41, "enhanced": false},
+    "def": {"base": 40, "enhanced": false},
+    "spatk": {"base": 50, "enhanced": false},
+    "spdef": {"base": 65, "enhanced": false},
+    "spd": {"base": 65, "enhanced": false}
+  },
+  "move": 30,
+  "class": "new",
+  "size": "medium"
+}

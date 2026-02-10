@@ -1,0 +1,391 @@
+import pygame
+
+import json
+import os
+
+import math
+import random
+
+import copy
+
+# Spritesheet, Adv Spritesheet, & Layered Sprites. 
+import Spritehandlers as Spr
+# Maps.
+import Maphandlers as Maps
+# Font & Debug.
+import Texthandlers as Txt
+# Characters, Players, Enemies, etc.
+import Charhandlers as Chr
+# Snek & da mines
+import Arcades as Arc
+
+os.environ['SDL_AUDIODRIVER'] = 'dsp'
+
+pygame.init()
+
+game_width, game_height = 256, 240
+
+real_screen = pygame.display.set_mode((game_width * 2, game_height * 2), pygame.RESIZABLE)
+
+game_screen = pygame.Surface((game_width, game_height))
+
+mini_snake_screen = pygame.Surface((32,32))
+
+pygame.display.set_caption("PythonRPG")
+
+
+'''
+Wow, 800+ lines in and I'm writing this just after finishing part 1.
+=================================================
+|                                               |
+|                   ENGINE                      |
+|                                               |
+|       Map, Font, Sprite Handlers, Etc.        |
+|                                               |
+|                                               |
+=================================================
+'''
+
+# .... Well *originally* this had all the Map handler stuff, Spritehandler stuff, Texthandler stuff, etc., but I guess not anymore.
+# This still here tho
+debug = Txt.Debug()
+
+
+
+
+
+'''
+Phase 2, initiated.
+=================================================
+|                                               |
+|                  GAMEPLAY                     |
+|                                               |
+|      Characters, Players, Enemies, etc.       |
+|                                               |
+|                                               |
+=================================================
+'''
+
+class AStar:
+    @staticmethod
+    def Pathfind(startCoordinates, end, tiles, move_type="8-dir"):
+        openList = []
+        closedList = []
+        
+        openList.append({"x": startCoordinates[0], "y": startCoordinates[1], "f": 0, "g": 0, "h":0, "p": None})
+        
+        W = tiles.width
+        H = tiles.height
+
+        def in_bounds(x, y):
+            return 0 <= x < W and 0 <= y < H
+        
+        def is_blocked(x, y):
+            return tiles.get(x, y) == 5
+        
+        def heuristic(x, y):
+            if move_type == "4-dir":
+                return abs(x - end[0]) + abs(y - end[1])
+            else:
+                return math.sqrt(abs(x - end[0])**2 + abs(y - end[1])**2)
+            
+        def neighbors(x, y):
+            out = []
+            for dx in range(-1, 2):
+                for dy in range(-1, 2):
+                    if dx == 0 and dy == 0:
+                        continue
+                    if move_type == "4-dir" and dx != 0 and dy != 0:
+                        continue
+                    out.append((x + dx, y + dy, dx, dy))
+            return out
+        
+        while openList:
+            #print(sorted(openList, key=lambda x: x["f"]))
+            openList = sorted(openList, key=lambda x: x["f"])
+            curNode = openList.pop(0)
+            curKey = (curNode["x"], curNode["y"])
+    
+            if curKey in closedList:
+                continue
+            closedList.append(curKey)
+
+            if curKey == end:
+                path = []
+                n = curNode
+                while n is not None:
+                    path.append((n["x"], n["y"]))
+                    n = n["p"]
+                path.reverse()
+                return path
+
+            for nx, ny, dx, dy in neighbors(curNode["x"], curNode["y"]):
+                if not in_bounds(nx, ny) or is_blocked(nx, ny):
+                    continue
+                step_cost = 1
+                g_cost = curNode["g"] + step_cost
+                h_cost = heuristic(nx, ny)
+                f_cost = g_cost + h_cost
+
+                worse = False
+                for node in openList:
+                    if node["x"] == nx and node["y"] == ny and g_cost >= node["g"]:
+                        worse = True
+                        break
+                if worse:
+                    continue
+
+                openList.append({"x": nx, "y": ny, "f": f_cost, "g": g_cost, "h": h_cost, "p": curNode})
+            
+                
+        return None
+        #print(closedList)
+                
+            
+char = Chr.Character()
+char.load_from_json("yoitsnew")
+    
+
+        
+
+
+'''
+snek
+=================================================
+|                                               |
+|                   ARCADE                      |
+|                                               |
+|       Snek                                    |
+|                                               |
+|                                               |
+=================================================
+'''
+
+
+
+
+clock = pygame.time.Clock()
+
+#spr_selected_tile = pygame.image.load('selectedtile.png').convert_alpha()
+
+sprsh_tileset = Spr.Spritesheet('sprites/tilesets/testtiles2.png', 16, 16)
+
+markers_full = Spr.Spritesheet('markers.png', 16, 32)
+markers_icons = Spr.Spritesheet('markers.png', 16, 16)
+marker = Spr.LayeredSprite([{"sprite": markers_full.get_image(0), "layer": 0, "color": None}, {"sprite":markers_full.get_image(1), "layer": 1, "color": (255,0,0,255)}, {"sprite":markers_icons.get_image(2), "layer": 2, "color": None}])
+
+
+camera_x, camera_y = 0, 0
+cam_speed = 1
+map_width, map_height = 3000, 12
+
+cur_map = Maps.Maps(map_width, map_height)
+
+frame = 0
+
+map_list = [
+    "!default_test_map",
+    "!lines",
+    "ai_testing/!river_outpost",
+    "ai_testing/!demo16x16",
+    "ai_testing/!windsurf_test",
+    "ai_testing/!island_outpost",
+    "ai_testing/!custom_island",
+    "ai_testing/!ruined_courtyard32x32",
+    "ai_testing/!custom_map_rle",
+    "ai_testing/!custom64",
+    "ai_testing/!obsidian_oasis",
+    "ai_testing/!dungeon"
+]
+curMapID = 0
+#cur_map = Maps.Maps.load(map_list[curMapID])
+cur_map = Maps.Maps.load("a")
+
+
+
+cabinet = pygame.image.load("sprites/arcades/snake_cabinet.png").convert_alpha()
+cabinet_curPos = (0,256)
+cabinet_pos = (0,256)
+
+snek = Arc.Snake()
+mine = Arc.Minesweeper()
+mine.countMines()
+
+last_few_maps = []
+
+path = None
+
+test = Spr.AdvancedSpritesheet("BOYFRIEND.png")
+
+while True:
+    pygame.display.set_icon(mini_snake_screen)
+    cabinet_curPos = (cabinet_curPos[0] + (cabinet_pos[0] - cabinet_curPos[0]) * 0.1, cabinet_curPos[1] + (cabinet_pos[1] - cabinet_curPos[1]) * 0.1)
+
+
+    #marker.draw(5,5, game_screen)
+
+    frame += 1
+
+    scaled_screen = pygame.transform.scale(game_screen, real_screen.get_size())
+    if real_screen.get_width() > real_screen.get_height():
+        scaled_screen = pygame.transform.scale(game_screen, (real_screen.get_height(), real_screen.get_height()))
+        scaled_snake = pygame.transform.scale(mini_snake_screen, (real_screen.get_height() // 2, real_screen.get_height() // 2))
+    else:
+        scaled_screen = pygame.transform.scale(game_screen, (real_screen.get_width(), real_screen.get_width()))
+        scaled_snake = pygame.transform.scale(mini_snake_screen, (real_screen.get_width() // 2, real_screen.get_width() // 2))
+
+    mouse_x = (pygame.mouse.get_pos()[0] - (real_screen.get_width() - scaled_screen.get_size()[0]) / 2) * game_width / scaled_screen.get_size()[0] 
+    mouse_y = (pygame.mouse.get_pos()[1] - (real_screen.get_height() - scaled_screen.get_size()[1]) / 2) * game_height / scaled_screen.get_size()[1]
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            Maps.Maps.unload_temp()
+            exit()
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                Maps.Maps.unload_temp()
+                exit()
+            if Txt.Debug.map_editor:
+                if event.key == pygame.K_0:
+                    Txt.Debug.editorMapMode = "Logic"
+                    cur_map.showVisMap = False
+
+                elif event.key == pygame.K_1:
+                    Txt.Debug.editorMapMode = "Visual"
+                    cur_map.showVisMap = True
+
+                elif event.key == pygame.K_2:
+                    Txt.Debug.map_tile += 1
+                    if Txt.Debug.editorMapMode == "Logic":
+                        Txt.Debug.map_tile %= len(Maps.Maps.tiles)
+                        Txt.Debug.debug_print("Set tile to [" + Maps.Maps.tiles[Txt.Debug.map_tile]["name"] + "]")
+                    elif Txt.Debug.editorMapMode == "Visual":
+                        Txt.Debug.map_tile %= cur_map.cur_total_tiles
+                    
+                elif event.key == pygame.K_3:
+                    path = AStar.Pathfind((1,1), ((mouse_x + camera_x) // 16, (mouse_y + camera_y) // 16), cur_map)
+                    
+                    
+                elif event.key == pygame.K_4:
+                    curMapID += 1
+                    cur_map = Maps.Maps.load(map_list[curMapID % len(map_list)])
+                elif event.key == pygame.K_5:
+                    mine = Arc.Minesweeper()
+                    mine.countMines()
+                elif event.key == pygame.K_r:
+                    cur_map.save("_temp_save", "Local Save")
+                elif event.key == pygame.K_MINUS:
+                    if cabinet_pos == (0, 0):
+                        cabinet_pos = (0, 256)
+                    else:
+                        cabinet_pos = (0, 0)
+                elif event.key == pygame.K_y:
+                    cur_map.showVisTiles = not cur_map.showVisTiles
+                    if Txt.Debug.editorMapMode == "Logic":
+                        Txt.Debug.editorMapMode = "Visual"
+                    elif Txt.Debug.editorMapMode == "Visual":
+                        Txt.Debug.editorMapMode = "Logic"
+                    if cur_map.showVisTiles:
+                        sprsh_tileset = Spr.Spritesheet('sprites/tilesets/testtiles2.png', 16, 16)
+                    else:
+                        sprsh_tileset = Spr.Spritesheet('sprites/tilesets/bgtiles.png', 16, 16)
+
+                elif event.key == pygame.K_KP_6:
+                    last_few_maps.append(copy.deepcopy(cur_map))
+                    cur_map.dualLogMapA = [[random.randint(0,2) for _ in range(cur_map.width + 1)] for _ in range(cur_map.height + 1)] 
+                elif event.key == pygame.K_KP_9:
+                    #print(last_few_maps)
+                    if len(last_few_maps) > 0:
+                        cur_map = last_few_maps.pop()
+        if event.type == pygame.MOUSEWHEEL:
+            if Txt.Debug.map_editor:
+                Txt.Debug.map_tile += event.y
+                #Debug.map_tile %= len(Map.tiles)
+                #Debug.debug_print("Set tile to [" + Map.tiles[Debug.map_tile]["name"] + "]")
+        if event.type == pygame.VIDEORESIZE:
+            real_screen = pygame.display.set_mode(event.size, pygame.RESIZABLE)
+
+         
+        if Txt.Debug.editorMapMode == "Visual":
+            if cur_map.cur_total_tiles != 0:
+                Txt.Debug.map_tile %= cur_map.cur_total_tiles
+        elif Txt.Debug.editorMapMode == "Logic":
+            if len(Maps.Maps.tiles) != 0:
+                Txt.Debug.map_tile %= len(Maps.Maps.tiles)
+
+    real_screen.fill((0, 0, 0))
+    game_screen.fill(cur_map.bg_color)
+    
+    
+    cur_map.render(game_screen, sprsh_tileset, camera_x, camera_y, game_width, game_height, frame)
+    
+    #game_screen.blit(spr_selected_tile, spr_selected_tile.get_rect(center=(round((mouse_x - 8) / 16) * 16 + 8, round((mouse_y - 8) / 16) * 16 + 8)))
+    
+    if Txt.Debug.map_editor:
+        if pygame.mouse.get_pressed()[0]:
+            #print(cur_map.dualLogMapA)
+            cur_map.set(round((mouse_x + camera_x) // 16), round((mouse_y + camera_y) // 16), Txt.Debug.map_tile, Txt.Debug.editorMapMode)
+        elif pygame.mouse.get_pressed()[2]:
+            if Txt.Debug.editorMapMode == "Logic":
+                cur_map.set(round((mouse_x + camera_x) // 16), round((mouse_y + camera_y) // 16), -1, Txt.Debug.editorMapMode)
+        else:
+            spr_selected_tile = sprsh_tileset.get_image(Txt.Debug.map_tile)
+            if Txt.Debug.editorMapMode == "Visual":
+                if Txt.Debug.map_tile <= len(cur_map.cur_tile_indices):
+                    
+                    spr_selected_tile = sprsh_tileset.get_image(cur_map.cur_tile_indices[Txt.Debug.map_tile])
+            game_screen.blit(spr_selected_tile, spr_selected_tile.get_rect(center=(round((mouse_x - 8 + camera_x % 16) / 16) * 16 + 8 - camera_x % 16, round((mouse_y - 8 + camera_y % 16) / 16) * 16 + 8 - camera_y % 16)))
+            #game_screen.blit(pygame.transform.scale(game_screen, (game_screen.get_size()[0] // 16, game_screen.get_size()[1] // 16)), spr_selected_tile.get_rect(center=(round((mouse_x - 8 + camera_x % 16) / 16) * 16 + 8 - camera_x % 16, round((mouse_y - 8 + camera_y % 16) / 16) * 16 + 8 - camera_y % 16)))
+            #game_screen.blit(real_screen, spr_selected_tile.get_rect(center=(round((mouse_x - 8 + camera_x % 16) / 16) * 16 + 8 - camera_x % 16, round((mouse_y - 8 + camera_y % 16) / 16) * 16 + 8 - camera_y % 16)))
+        
+
+    if pygame.key.get_pressed()[pygame.K_LSHIFT] or pygame.key.get_pressed()[pygame.K_RSHIFT]:
+        cam_speed = 4
+    else:
+        cam_speed = 1
+
+    if pygame.key.get_pressed()[pygame.K_UP]:
+        camera_y -= cam_speed
+    if pygame.key.get_pressed()[pygame.K_DOWN]:
+        camera_y += cam_speed
+    if pygame.key.get_pressed()[pygame.K_LEFT]:
+        camera_x -= cam_speed
+    if pygame.key.get_pressed()[pygame.K_RIGHT]:
+        camera_x += cam_speed
+    
+    #game_screen.blit(sprsh_tileset.get_image(round(frame / 16)), (16, 16))
+    
+    #pygame.draw.rect(game_screen, (0, 0, 0), (0, 0, game_width / 2, game_height / 2))
+
+    #pygame.draw.rect(game_screen, (0, 0, 0), (game_width / 2, game_height / 2, game_width, game_height))
+
+    Txt.Debug.render_debug_text(game_screen)
+
+    clock.tick(60)
+    
+    #if path == None:
+    '''    
+    path = AStar.Pathfind((1,1), ((mouse_x + camera_x) // 16, (mouse_y + camera_y) // 16), cur_map)   
+    '''
+    if path != None:
+        #print(path)
+        
+        for i in path:
+            #print(i)
+            #marker.draw(i["x"] * 16 - camera_x, i["y"] * 16 - camera_y - 16)
+            game_screen.blit(pygame.image.load("sprites/characters/placeholderNew.png"), (i[0] * 16 - camera_x, i[1] * 16 - camera_y))
+    
+
+    game_screen.blit(cabinet, cabinet_curPos)
+
+    real_screen.blit(scaled_screen, scaled_screen.get_rect(center=real_screen.get_rect().center))
+
+    if round(cabinet_curPos[1]) == 0:
+        snek.update(frame, (pygame.key.get_pressed()[pygame.K_w], pygame.key.get_pressed()[pygame.K_a], pygame.key.get_pressed()[pygame.K_s], pygame.key.get_pressed()[pygame.K_d]))
+        snek.draw(mini_snake_screen)
+        real_screen.blit(scaled_snake, scaled_snake.get_rect(center=real_screen.get_rect().center))
+
+    #mine.update(frame, {"x": }
+    mine.draw(mini_snake_screen)
+    
+    pygame.display.flip()
