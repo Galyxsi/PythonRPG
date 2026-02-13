@@ -1,6 +1,9 @@
 import pygame
 import json
 import os
+import re
+
+import xml.etree.ElementTree as ET
 
 
 """
@@ -97,17 +100,64 @@ class AdvancedSpritesheet():
 
     def __init__(self, filename):
         self.image = None
-        self.data = None
+        self.data = []
+        self.animData = {}
+        self.current_anim = None
+        self.animStartFrame = 0
         if os.path.exists(filename):
             with open(filename, "r") as f:
                 self.image = pygame.image.load(filename).convert_alpha()
         if os.path.exists(filename.split(".")[0] + ".xml"):
-            with open(filename.split(".")[0] + ".xml", "r") as f:
-                self.data = f.read()
-                #print(self.data)
+            self.loadXML(filename.split(".")[0] + ".xml")
+        elif os.path.exists(filename.split(".")[0] + ".json"):
+            self.loadXML(filename.split(".")[0] + ".json")
+
 
     def loadXML(self, xml):
-        pass
+        image_data = ET.parse(xml)
+        #print(image_data)
+        root = image_data.getroot()
+        for child in root:
+            self.data.append(child.attrib)
+            #print(child.attrib)
+            #for i in child:
+            #    print(i)
+        self.animData = self.getAnimData()
+    
+    def getAnimData(self):
+        animData = {}
+        for _, i in enumerate(self.data):
+            name = i["name"]
+            split_name = re.split("^(\D*)", name)
+            #print(split_name)
+            if not split_name[1] in animData:
+                animData[split_name[1]] = []
+            animData[split_name[1]].append(_)
+        return animData
+            
+    
+    def get_image(self, index):
+        cur_data = self.data[index]
+        #print((cur_data["width"], cur_data["height"]))
+        image = pygame.Surface((int(cur_data["frameWidth"]), int(cur_data["frameHeight"])), pygame.SRCALPHA).convert_alpha()
+        image.blit(self.image, (-1 * int(cur_data["frameX"]), -1 * int(cur_data["frameY"])), (int(cur_data["x"]), int(cur_data["y"]), int(cur_data["width"]), int(cur_data["height"])))
+        return pygame.transform.scale(image, (64, 64))
+        
+    def animation(self, anim_name, frame, fps=12):
+        if not anim_name in self.animData:
+            return
+        if anim_name != self.current_anim:
+            self.current_anim = anim_name
+            self.animStartFrame = frame
+
+        cur_anim = self.animData[anim_name]
+        local_frame = frame - self.animStartFrame
+        #
+        #frame %= 60
+        index = int((local_frame / 60) * fps) % len(cur_anim)
+        return self.get_image(cur_anim[index])
+        
+    
 
 class LayeredSprite:
 

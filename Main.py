@@ -11,7 +11,7 @@ import copy
 # Spritesheet, Adv Spritesheet, & Layered Sprites. 
 import Spritehandlers as Spr
 # Maps.
-import Maphandlers as Maps
+import Maphandlers as Map
 # Font & Debug.
 import Texthandlers as Txt
 # Characters, Players, Enemies, etc.
@@ -30,6 +30,10 @@ real_screen = pygame.display.set_mode((game_width * 2, game_height * 2), pygame.
 game_screen = pygame.Surface((game_width, game_height))
 
 mini_snake_screen = pygame.Surface((32,32))
+
+hud_screen = pygame.Surface((game_width, 32))
+hud_alpha = 255
+cur_hud_alpha = 255
 
 pygame.display.set_caption("PythonRPG")
 
@@ -144,7 +148,7 @@ class AStar:
             
 char = Chr.Character()
 char.load_from_json("yoitsnew")
-    
+char.set_xy(100, 100)
 
         
 
@@ -161,8 +165,8 @@ snek
 =================================================
 '''
 
-
-
+# This can either be overworld or battle.
+game_mode = "overworld"
 
 clock = pygame.time.Clock()
 
@@ -176,10 +180,11 @@ marker = Spr.LayeredSprite([{"sprite": markers_full.get_image(0), "layer": 0, "c
 
 
 camera_x, camera_y = 0, 0
+cam_ix, cam_iy = 0, 0
 cam_speed = 1
 map_width, map_height = 3000, 12
 
-cur_map = Maps.Maps(map_width, map_height)
+cur_map = Map.Maps(map_width, map_height)
 
 frame = 0
 
@@ -199,7 +204,7 @@ map_list = [
 ]
 curMapID = 0
 #cur_map = Maps.Maps.load(map_list[curMapID])
-cur_map = Maps.Maps.load("a")
+cur_map = Map.Maps.load("a")
 
 
 
@@ -209,15 +214,21 @@ cabinet_pos = (0,256)
 
 snek = Arc.Snake()
 mine = Arc.Minesweeper()
-mine.countMines()
+#mine.countMines()
 
 last_few_maps = []
 
 path = None
 
 test = Spr.AdvancedSpritesheet("BOYFRIEND.png")
+cur_bf_anim = 0
 
 while True:
+
+    if cur_hud_alpha != hud_alpha:
+        cur_hud_alpha += (hud_alpha - cur_hud_alpha) * 0.1
+        hud_screen.set_alpha(cur_hud_alpha)
+
     pygame.display.set_icon(mini_snake_screen)
     cabinet_curPos = (cabinet_curPos[0] + (cabinet_pos[0] - cabinet_curPos[0]) * 0.1, cabinet_curPos[1] + (cabinet_pos[1] - cabinet_curPos[1]) * 0.1)
 
@@ -237,13 +248,18 @@ while True:
     mouse_x = (pygame.mouse.get_pos()[0] - (real_screen.get_width() - scaled_screen.get_size()[0]) / 2) * game_width / scaled_screen.get_size()[0] 
     mouse_y = (pygame.mouse.get_pos()[1] - (real_screen.get_height() - scaled_screen.get_size()[1]) / 2) * game_height / scaled_screen.get_size()[1]
 
+    if mouse_y < game_height - 32:
+        cur_hud_alpha = 64
+    else:
+        cur_hud_alpha = 255
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            Maps.Maps.unload_temp()
+            Map.Maps.unload_temp()
             exit()
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
-                Maps.Maps.unload_temp()
+                Map.Maps.unload_temp()
                 exit()
             if Txt.Debug.map_editor:
                 if event.key == pygame.K_0:
@@ -257,21 +273,27 @@ while True:
                 elif event.key == pygame.K_2:
                     Txt.Debug.map_tile += 1
                     if Txt.Debug.editorMapMode == "Logic":
-                        Txt.Debug.map_tile %= len(Maps.Maps.tiles)
-                        Txt.Debug.debug_print("Set tile to [" + Maps.Maps.tiles[Txt.Debug.map_tile]["name"] + "]")
+                        Txt.Debug.map_tile %= len(Map.Maps.tiles)
+                        Txt.Debug.debug_print("Set tile to [" + Map.Maps.tiles[Txt.Debug.map_tile]["name"] + "]")
                     elif Txt.Debug.editorMapMode == "Visual":
                         Txt.Debug.map_tile %= cur_map.cur_total_tiles
                     
                 elif event.key == pygame.K_3:
-                    path = AStar.Pathfind((1,1), ((mouse_x + camera_x) // 16, (mouse_y + camera_y) // 16), cur_map)
+                    path = AStar.Pathfind((1,1), ((mouse_x + cam_ix) // 16, (mouse_y + cam_iy) // 16), cur_map)
                     
                     
                 elif event.key == pygame.K_4:
                     curMapID += 1
-                    cur_map = Maps.Maps.load(map_list[curMapID % len(map_list)])
+                    cur_map = Map.Maps.load(map_list[curMapID % len(map_list)])
                 elif event.key == pygame.K_5:
                     mine = Arc.Minesweeper()
                     mine.countMines()
+                elif event.key == pygame.K_6:
+                    char.x = mouse_x
+                    char.y = mouse_y
+                elif event.key == pygame.K_7:
+                    cur_bf_anim += 1
+                    cur_bf_anim %= 6
                 elif event.key == pygame.K_r:
                     cur_map.save("_temp_save", "Local Save")
                 elif event.key == pygame.K_MINUS:
@@ -310,48 +332,65 @@ while True:
             if cur_map.cur_total_tiles != 0:
                 Txt.Debug.map_tile %= cur_map.cur_total_tiles
         elif Txt.Debug.editorMapMode == "Logic":
-            if len(Maps.Maps.tiles) != 0:
-                Txt.Debug.map_tile %= len(Maps.Maps.tiles)
+            if len(Map.Maps.tiles) != 0:
+                Txt.Debug.map_tile %= len(Map.Maps.tiles)
 
     real_screen.fill((0, 0, 0))
     game_screen.fill(cur_map.bg_color)
+    hud_screen.fill((255, 255, 255))
     
     
-    cur_map.render(game_screen, sprsh_tileset, camera_x, camera_y, game_width, game_height, frame)
+    cur_map.render(game_screen, sprsh_tileset, cam_ix, cam_iy, game_width, game_height, frame)
     
     #game_screen.blit(spr_selected_tile, spr_selected_tile.get_rect(center=(round((mouse_x - 8) / 16) * 16 + 8, round((mouse_y - 8) / 16) * 16 + 8)))
     
     if Txt.Debug.map_editor:
         if pygame.mouse.get_pressed()[0]:
             #print(cur_map.dualLogMapA)
-            cur_map.set(round((mouse_x + camera_x) // 16), round((mouse_y + camera_y) // 16), Txt.Debug.map_tile, Txt.Debug.editorMapMode)
+            cur_map.set(round((mouse_x + cam_ix) // 16), round((mouse_y + cam_iy) // 16), Txt.Debug.map_tile, Txt.Debug.editorMapMode)
         elif pygame.mouse.get_pressed()[2]:
             if Txt.Debug.editorMapMode == "Logic":
-                cur_map.set(round((mouse_x + camera_x) // 16), round((mouse_y + camera_y) // 16), -1, Txt.Debug.editorMapMode)
+                cur_map.set(round((mouse_x + cam_ix) // 16), round((mouse_y + cam_iy) // 16), -1, Txt.Debug.editorMapMode)
         else:
             spr_selected_tile = sprsh_tileset.get_image(Txt.Debug.map_tile)
             if Txt.Debug.editorMapMode == "Visual":
                 if Txt.Debug.map_tile <= len(cur_map.cur_tile_indices):
                     
                     spr_selected_tile = sprsh_tileset.get_image(cur_map.cur_tile_indices[Txt.Debug.map_tile])
-            game_screen.blit(spr_selected_tile, spr_selected_tile.get_rect(center=(round((mouse_x - 8 + camera_x % 16) / 16) * 16 + 8 - camera_x % 16, round((mouse_y - 8 + camera_y % 16) / 16) * 16 + 8 - camera_y % 16)))
+            game_screen.blit(spr_selected_tile, spr_selected_tile.get_rect(center=(round((mouse_x - 8 + cam_ix % 16) / 16) * 16 + 8 - cam_ix % 16, round((mouse_y - 8 + cam_iy % 16) / 16) * 16 + 8 - cam_iy % 16)))
             #game_screen.blit(pygame.transform.scale(game_screen, (game_screen.get_size()[0] // 16, game_screen.get_size()[1] // 16)), spr_selected_tile.get_rect(center=(round((mouse_x - 8 + camera_x % 16) / 16) * 16 + 8 - camera_x % 16, round((mouse_y - 8 + camera_y % 16) / 16) * 16 + 8 - camera_y % 16)))
             #game_screen.blit(real_screen, spr_selected_tile.get_rect(center=(round((mouse_x - 8 + camera_x % 16) / 16) * 16 + 8 - camera_x % 16, round((mouse_y - 8 + camera_y % 16) / 16) * 16 + 8 - camera_y % 16)))
         
 
     if pygame.key.get_pressed()[pygame.K_LSHIFT] or pygame.key.get_pressed()[pygame.K_RSHIFT]:
-        cam_speed = 4
+        if game_mode == "battle":
+            cam_speed = 4
+        elif game_mode == "overworld":
+            cam_speed = 2
     else:
         cam_speed = 1
 
-    if pygame.key.get_pressed()[pygame.K_UP]:
-        camera_y -= cam_speed
-    if pygame.key.get_pressed()[pygame.K_DOWN]:
-        camera_y += cam_speed
-    if pygame.key.get_pressed()[pygame.K_LEFT]:
-        camera_x -= cam_speed
-    if pygame.key.get_pressed()[pygame.K_RIGHT]:
-        camera_x += cam_speed
+
+    #dead_zone_x, dead_zone_y = 2, 2
+    input = (cam_speed * (pygame.key.get_pressed()[pygame.K_d] - pygame.key.get_pressed()[pygame.K_a]), cam_speed * (pygame.key.get_pressed()[pygame.K_s] - pygame.key.get_pressed()[pygame.K_w]))
+    char.overworld_movement(input, cur_map)
+    if game_mode == "battle":
+        if pygame.key.get_pressed()[pygame.K_UP]:
+            camera_y -= cam_speed
+        if pygame.key.get_pressed()[pygame.K_DOWN]:
+            camera_y += cam_speed
+        if pygame.key.get_pressed()[pygame.K_LEFT]:
+            camera_x -= cam_speed
+        if pygame.key.get_pressed()[pygame.K_RIGHT]:
+            camera_x += cam_speed
+    elif game_mode == "overworld":
+        camera_x = (camera_x + (input[0] * 24 + char.x - camera_x - game_width / 2) / 20)
+        camera_y = (camera_y + (input[1] * 24 + char.y - camera_y - game_height / 2) / 20)
+        camera_x = max(0, min(camera_x, cur_map.width * 16 - game_width))
+        camera_y = max(0, min(camera_y, cur_map.height * 16 - game_height))
+    cam_ix = math.floor(camera_x)
+    cam_iy = math.floor(camera_y)
+    char.render(game_screen, (cam_ix, cam_iy))
     
     #game_screen.blit(sprsh_tileset.get_image(round(frame / 16)), (16, 16))
     
@@ -373,10 +412,23 @@ while True:
         for i in path:
             #print(i)
             #marker.draw(i["x"] * 16 - camera_x, i["y"] * 16 - camera_y - 16)
-            game_screen.blit(pygame.image.load("sprites/characters/placeholderNew.png"), (i[0] * 16 - camera_x, i[1] * 16 - camera_y))
+            game_screen.blit(pygame.image.load("sprites/characters/placeholderNew.png"), (i[0] * 16 - cam_ix, i[1] * 16 - cam_iy))
     
 
+    bf_anims = [
+        "BF HEY!!",
+        "BF NOTE DOWN",
+        "BF NOTE UP",
+        "BF NOTE LEFT",
+        "BF NOTE RIGHT",
+        "BF idle dance",
+    ]
+    game_screen.blit(test.animation(bf_anims[cur_bf_anim], frame, 24), (-cam_ix,-cam_iy))
+
     game_screen.blit(cabinet, cabinet_curPos)
+    
+    hud_screen.set_alpha(cur_hud_alpha)
+    game_screen.blit(hud_screen, (0, game_height - 32))
 
     real_screen.blit(scaled_screen, scaled_screen.get_rect(center=real_screen.get_rect().center))
 
