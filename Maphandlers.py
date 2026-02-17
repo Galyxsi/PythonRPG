@@ -58,7 +58,6 @@ class Maps():
         self.width = width
         self.height = height
         self.map = [-1] * (self.width * self.height)
-        #self.dualLogMapA = [[random.randint(0,8) for _ in range(self.width + 1)] for _ in range(self.height + 1)]
         self.dualLogMapA = [[0 for _ in range(self.width + 1)] for _ in range(self.height + 1)]
         self.dualVisMapA = [[0 for _ in range(self.width + 1)] for _ in range(self.height + 1)]
         
@@ -171,7 +170,6 @@ class Maps():
                     mask = (grid1, grid2, grid3, grid4)
                     tile_index = self.dualTileFormat.get(mask, 6)
                     self.dualVisMapA[y][x][0] = tile_index
-                #print(self.dualVisMapA[y][x])
 
     def render(self, surface, tileset, cam_x, cam_y, window_width, window_height, anim_frame=0, tile_size=16):
         
@@ -187,14 +185,11 @@ class Maps():
         for y in range(start_y, end_y):
             for x in range(start_x, end_x):
                     if self.showVisTiles:
-                        #if x == max(0,min(x, self.width)) and y == max(0, min(y, self.height)):
                         if x < self.width and y < self.height:
                             tiles = self.dualVisMapA[y + 1][x + 1]
                         #print(tiles)
                         if tiles != 0 and tiles != None:
                             for i in tiles:
-                                #print(str(tileset.get_image(i, anim_frame)))
-                                #print(tiles)
                                 surface.blit(tileset.get_image(tiles[i], anim_frame), (tile_size/2 + x * tile_size - cam_x ,tile_size/2 + y * tile_size - cam_y))
                     else:   
                         if x == max(0, min(x, self.width)) and y == max(0, min(y, self.height)):
@@ -240,7 +235,6 @@ class Maps():
         flat_map = []
         for encoded_row in rows:
             row = Maps.rle_decode_row(encoded_row)
-            #print(row)
             if len(row) != width:
                 raise ValueError("Decoded row has wrong width")
             flat_map.extend(row)
@@ -318,7 +312,6 @@ class Maps():
     def load(filename):
         if not os.path.exists("maps/" + filename + ".json"):
             Txt.Debug.debug_print(":cRed::emptybox::cWhite: Failed to load map " + filename + ".json", 200)
-            #loadedMap = json.load(default_map)
             return Maps.map_from_list(default_map)
         
         with open("maps/" + filename + ".json", "r") as f:

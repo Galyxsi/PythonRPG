@@ -94,7 +94,7 @@ class Spritesheet:
         return self.extra_data.get(key, None)
     
 """
-    More flexible spritesheet, for use with .xml files, intended for characters, enemies, etc. Not fully implemented yet.
+    More flexible spritesheet, for use with .xml and .json files, intended for characters, enemies, etc.
 """
 class AdvancedSpritesheet():
 
@@ -104,13 +104,17 @@ class AdvancedSpritesheet():
         self.animData = {}
         self.current_anim = None
         self.animStartFrame = 0
+        self.height = 0
         if os.path.exists(filename):
             with open(filename, "r") as f:
                 self.image = pygame.image.load(filename).convert_alpha()
+
         if os.path.exists(filename.split(".")[0] + ".xml"):
             self.loadXML(filename.split(".")[0] + ".xml")
+        if os.path.exists(filename.split(".")[0] + ".xml2"):
+            self.loadXML(filename.split(".")[0] + ".xml2")
         elif os.path.exists(filename.split(".")[0] + ".json"):
-            self.loadXML(filename.split(".")[0] + ".json")
+            self.loadJSON(filename.split(".")[0] + ".json")
 
 
     def loadXML(self, xml):
@@ -119,10 +123,38 @@ class AdvancedSpritesheet():
         root = image_data.getroot()
         for child in root:
             self.data.append(child.attrib)
-            #print(child.attrib)
-            #for i in child:
-            #    print(i)
         self.animData = self.getAnimData()
+
+    def loadJSON(self, json_file):
+        with open(json_file, "r") as f:
+            json_data = json.load(f)
+
+        frames = json_data["frames"]
+
+
+        self.data = []
+        for frame in frames:
+            rect = frames[frame]["frame"]
+            sourceSize = frames[frame]["sourceSize"]
+            spriteSourceSize = frames[frame]["spriteSourceSize"]
+            self.data.append({
+                "x": rect["x"],
+                "y": rect["y"],
+                "width": rect["w"],
+                "height": rect["h"],
+                "frameX": -spriteSourceSize["x"],
+                "frameY": -spriteSourceSize["y"],
+                "frameWidth": sourceSize["w"],
+                "frameHeight": sourceSize["h"],
+                "name": "frame"
+            })
+        self.animData = {}
+        for tag in json_data["meta"]["frameTags"]:
+            name = tag["name"]
+            start = tag["from"]
+            end = tag["to"]
+
+            self.animData[name] = list(range(start, end + 1))
     
     def getAnimData(self):
         animData = {}
@@ -138,10 +170,11 @@ class AdvancedSpritesheet():
     
     def get_image(self, index):
         cur_data = self.data[index]
-        #print((cur_data["width"], cur_data["height"]))
         image = pygame.Surface((int(cur_data["frameWidth"]), int(cur_data["frameHeight"])), pygame.SRCALPHA).convert_alpha()
         image.blit(self.image, (-1 * int(cur_data["frameX"]), -1 * int(cur_data["frameY"])), (int(cur_data["x"]), int(cur_data["y"]), int(cur_data["width"]), int(cur_data["height"])))
-        return pygame.transform.scale(image, (64, 64))
+        self.height = int(cur_data["frameHeight"]) + int(cur_data["frameY"]) - 8 
+        #image = pygame.transform.scale(image, (64, 64))
+        return image
         
     def animation(self, anim_name, frame, fps=12):
         if not anim_name in self.animData:

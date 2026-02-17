@@ -22,13 +22,16 @@ class Stat:
 
 class Character:
     
-    def __init__(self, names=["","",""], pos=(0,0), sheet=Spr.Spritesheet("sprites/characters/placeholderNew.png", 16,16)):
+    def __init__(self, names=["","",""], pos=(0,0), sheet=""):
         self.names = names
         self.x = pos[0]
         self.y = pos[1]
-        self.sheet = sheet
+        self.sheet = Spr.AdvancedSpritesheet(sheet)
         self.movement_speed = 30
         self.stats = {}
+        
+        self.dir = 0
+        self.moveVec = (0,0)
         
         self.level = 100
 
@@ -59,6 +62,15 @@ class Character:
 
     def overworld_movement(self, input, map):
         movement = (input[0], input[1])
+        self.movementVec = movement
+        if movement[1] > 0:
+            self.dir = 2
+        elif movement[1] < 0:
+            self.dir = 0
+        elif movement[0] > 0:
+            self.dir = 1
+        elif movement[0] < 0:
+            self.dir = 3
         newX, newY =  self.overworld_collide(movement, map)
         self.x += newX
         self.y += newY
@@ -66,7 +78,7 @@ class Character:
     def load_from_json(self, filename):
         with open("characters/" + filename + ".json", "r") as f:
             data = json.load(f)
-            self.sheet = Spr.Spritesheet(data["sprite"], 16, 16)
+            self.sheet = Spr.AdvancedSpritesheet(data["sprite"])
             self.names = [data["first_name"], data["mid_name"], data["last_name"]]
             self.stats = {}
             for i in data["stats"]:
@@ -74,5 +86,20 @@ class Character:
                     self.stats[i] = Stat(i, data["stats"][i]["base"], data["stats"][i]["enhanced"], self.level)
                     print(self.stats[i])
                 #print(i)
-    def render(self, screen, cam):
-        screen.blit(self.sheet.get_image(0), (self.x - cam[0], self.y - cam[1]), (0, 0, 16, 16))
+    def render(self, screen, cam, frame=0):
+        if self.dir == 0: # North
+            state = "Up"
+        elif self.dir == 1: # East
+            state = "Right"
+        elif self.dir == 2: # South
+            state = "Down"
+        elif self.dir == 3: # West
+            state = "Left"
+        else:
+            state = ""
+            
+        if self.movementVec == (0,0):
+            state = "Idle" + state
+        else:
+            state = "Walk" + state
+        screen.blit(self.sheet.animation(state, frame, 6), (self.x - cam[0], self.y - cam[1] - self.sheet.height))

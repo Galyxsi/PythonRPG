@@ -160,5 +160,3 @@ class Minesweeper:
             for j in range(32):
                 if self.minefield[i][j] != 0:
                     pygame.draw.rect(screen, self.sweeperColors[color_index][self.minefield[i][j]], (i,j, 1, 1))
-                #elif self.minefield[i][j] == -1:
-                #    pygame.draw.rect(screen, self.sweeperColors[])

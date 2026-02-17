@@ -71,7 +71,6 @@ class Font:
         cur_color = color
         i = 0
         for char in altered_text:
-            #print(self.color_changes)
             if len(self.color_changes) != 0 and self.color_changes[0]["index"] == i:
                 cur_color = self.color_changes[0]["color"]
                 self.color_changes.pop(0)
@@ -98,16 +97,10 @@ class Font:
         return text
     def color(self, text, opacity):
         for color, rgb in Font.COLORS.items():
-            #print(Font.COLORS[color])
             index = text.find(color)
             if index != -1:
                 self.color_changes.append({"color": (rgb[0], rgb[1], rgb[2], opacity), "index": index})
-                #self.color_changes[len(self.color_changes)] = {"color": (rgb[0], rgb[1], rgb[2], opacity), "index": index}
             text = text.replace(color, "\uE00C")
-        #if len(self.color_changes) > 0:
-            #sorted(self.color_changes.items(), key=lambda item: item[1])
-            #print(self.color_changes)
-            #self.color_changes.sort(key="index")
         return text
     
 

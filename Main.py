@@ -1,6 +1,5 @@
 import pygame
 
-import json
 import os
 
 import math
@@ -37,38 +36,7 @@ cur_hud_alpha = 255
 
 pygame.display.set_caption("PythonRPG")
 
-
-'''
-Wow, 800+ lines in and I'm writing this just after finishing part 1.
-=================================================
-|                                               |
-|                   ENGINE                      |
-|                                               |
-|       Map, Font, Sprite Handlers, Etc.        |
-|                                               |
-|                                               |
-=================================================
-'''
-
-# .... Well *originally* this had all the Map handler stuff, Spritehandler stuff, Texthandler stuff, etc., but I guess not anymore.
-# This still here tho
 debug = Txt.Debug()
-
-
-
-
-
-'''
-Phase 2, initiated.
-=================================================
-|                                               |
-|                  GAMEPLAY                     |
-|                                               |
-|      Characters, Players, Enemies, etc.       |
-|                                               |
-|                                               |
-=================================================
-'''
 
 class AStar:
     @staticmethod
@@ -143,34 +111,16 @@ class AStar:
             
                 
         return None
-        #print(closedList)
                 
             
 char = Chr.Character()
 char.load_from_json("yoitsnew")
 char.set_xy(100, 100)
 
-        
-
-
-'''
-snek
-=================================================
-|                                               |
-|                   ARCADE                      |
-|                                               |
-|       Snek                                    |
-|                                               |
-|                                               |
-=================================================
-'''
-
 # This can either be overworld or battle.
 game_mode = "overworld"
 
 clock = pygame.time.Clock()
-
-#spr_selected_tile = pygame.image.load('selectedtile.png').convert_alpha()
 
 sprsh_tileset = Spr.Spritesheet('sprites/tilesets/testtiles2.png', 16, 16)
 
@@ -203,7 +153,6 @@ map_list = [
     "ai_testing/!dungeon"
 ]
 curMapID = 0
-#cur_map = Maps.Maps.load(map_list[curMapID])
 cur_map = Map.Maps.load("a")
 
 
@@ -220,8 +169,7 @@ last_few_maps = []
 
 path = None
 
-test = Spr.AdvancedSpritesheet("BOYFRIEND.png")
-cur_bf_anim = 0
+test2 = Spr.AdvancedSpritesheet("sprites/characters/playable/Witch.png")
 
 while True:
 
@@ -231,9 +179,6 @@ while True:
 
     pygame.display.set_icon(mini_snake_screen)
     cabinet_curPos = (cabinet_curPos[0] + (cabinet_pos[0] - cabinet_curPos[0]) * 0.1, cabinet_curPos[1] + (cabinet_pos[1] - cabinet_curPos[1]) * 0.1)
-
-
-    #marker.draw(5,5, game_screen)
 
     frame += 1
 
@@ -322,8 +267,6 @@ while True:
         if event.type == pygame.MOUSEWHEEL:
             if Txt.Debug.map_editor:
                 Txt.Debug.map_tile += event.y
-                #Debug.map_tile %= len(Map.tiles)
-                #Debug.debug_print("Set tile to [" + Map.tiles[Debug.map_tile]["name"] + "]")
         if event.type == pygame.VIDEORESIZE:
             real_screen = pygame.display.set_mode(event.size, pygame.RESIZABLE)
 
@@ -341,9 +284,7 @@ while True:
     
     
     cur_map.render(game_screen, sprsh_tileset, cam_ix, cam_iy, game_width, game_height, frame)
-    
-    #game_screen.blit(spr_selected_tile, spr_selected_tile.get_rect(center=(round((mouse_x - 8) / 16) * 16 + 8, round((mouse_y - 8) / 16) * 16 + 8)))
-    
+        
     if Txt.Debug.map_editor:
         if pygame.mouse.get_pressed()[0]:
             #print(cur_map.dualLogMapA)
@@ -358,10 +299,7 @@ while True:
                     
                     spr_selected_tile = sprsh_tileset.get_image(cur_map.cur_tile_indices[Txt.Debug.map_tile])
             game_screen.blit(spr_selected_tile, spr_selected_tile.get_rect(center=(round((mouse_x - 8 + cam_ix % 16) / 16) * 16 + 8 - cam_ix % 16, round((mouse_y - 8 + cam_iy % 16) / 16) * 16 + 8 - cam_iy % 16)))
-            #game_screen.blit(pygame.transform.scale(game_screen, (game_screen.get_size()[0] // 16, game_screen.get_size()[1] // 16)), spr_selected_tile.get_rect(center=(round((mouse_x - 8 + camera_x % 16) / 16) * 16 + 8 - camera_x % 16, round((mouse_y - 8 + camera_y % 16) / 16) * 16 + 8 - camera_y % 16)))
-            #game_screen.blit(real_screen, spr_selected_tile.get_rect(center=(round((mouse_x - 8 + camera_x % 16) / 16) * 16 + 8 - camera_x % 16, round((mouse_y - 8 + camera_y % 16) / 16) * 16 + 8 - camera_y % 16)))
-        
-
+            
     if pygame.key.get_pressed()[pygame.K_LSHIFT] or pygame.key.get_pressed()[pygame.K_RSHIFT]:
         if game_mode == "battle":
             cam_speed = 4
@@ -390,7 +328,7 @@ while True:
         camera_y = max(0, min(camera_y, cur_map.height * 16 - game_height))
     cam_ix = math.floor(camera_x)
     cam_iy = math.floor(camera_y)
-    char.render(game_screen, (cam_ix, cam_iy))
+    char.render(game_screen, (cam_ix, cam_iy), frame)
     
     #game_screen.blit(sprsh_tileset.get_image(round(frame / 16)), (16, 16))
     
@@ -413,17 +351,6 @@ while True:
             #print(i)
             #marker.draw(i["x"] * 16 - camera_x, i["y"] * 16 - camera_y - 16)
             game_screen.blit(pygame.image.load("sprites/characters/placeholderNew.png"), (i[0] * 16 - cam_ix, i[1] * 16 - cam_iy))
-    
-
-    bf_anims = [
-        "BF HEY!!",
-        "BF NOTE DOWN",
-        "BF NOTE UP",
-        "BF NOTE LEFT",
-        "BF NOTE RIGHT",
-        "BF idle dance",
-    ]
-    game_screen.blit(test.animation(bf_anims[cur_bf_anim], frame, 24), (-cam_ix,-cam_iy))
 
     game_screen.blit(cabinet, cabinet_curPos)
     
@@ -438,6 +365,6 @@ while True:
         real_screen.blit(scaled_snake, scaled_snake.get_rect(center=real_screen.get_rect().center))
 
     #mine.update(frame, {"x": }
-    mine.draw(mini_snake_screen)
+    #mine.draw(mini_snake_screen)
     
     pygame.display.flip()
