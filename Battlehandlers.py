@@ -29,7 +29,7 @@ class Battle:
                 if i == 0 and j == 0:
                     continue
                 pathfound = Chr.Pathfinder.Pathfind(start_tile, (start_tile[0] + i, start_tile[1] + j), map, "4-dir")
-                if pathfound and len(pathfound) < max_steps:
+                if pathfound and len(pathfound) - 1 <= max_steps:
                     available_tiles.append((start_tile[0] + i, start_tile[1] + j))
         return available_tiles
 

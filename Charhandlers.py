@@ -121,6 +121,10 @@ class Character:
         self.x = x
         self.y = y
 
+    def set_tilexy(self, x, y):
+        self.x = x * 16
+        self.y = y * 16
+
     def overworld_collide(self, movementVec, map):
         newX = movementVec[0]
         newXi = round(movementVec[0])

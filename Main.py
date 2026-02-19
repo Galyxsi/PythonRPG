@@ -43,11 +43,11 @@ debug = Txt.Debug()
             
 char = Chr.Character()
 char.load_from_json("yoitsnew")
-char.set_xy(100, 100)
+char.set_tilexy(5, 5)
 
 enemy = Chr.Character()
 enemy.load_from_json("sandbag")
-enemy.set_xy(150, 150)
+enemy.set_tilexy(8, 8)
 
 character_list = [char, enemy]
 character_turn = 0
@@ -267,7 +267,7 @@ while True:
 
     #dead_zone_x, dead_zone_y = 2, 2
     input = (cam_speed * (pygame.key.get_pressed()[pygame.K_d] - pygame.key.get_pressed()[pygame.K_a]), cam_speed * (pygame.key.get_pressed()[pygame.K_s] - pygame.key.get_pressed()[pygame.K_w]))
-    char.overworld_movement(input, cur_map)
+    #char.overworld_movement(input, cur_map)
     if game_mode == "debug":
         if pygame.key.get_pressed()[pygame.K_UP]:
             camera_y -= cam_speed
