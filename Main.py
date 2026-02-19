@@ -17,6 +17,8 @@ import Texthandlers as Txt
 import Charhandlers as Chr
 # Snek & da mines
 import Arcades as Arc
+# Battle System
+import Battlehandlers as Bat
 
 os.environ['SDL_AUDIODRIVER'] = 'dsp'
 
@@ -37,88 +39,23 @@ cur_hud_alpha = 255
 pygame.display.set_caption("PythonRPG")
 
 debug = Txt.Debug()
-
-class AStar:
-    @staticmethod
-    def Pathfind(startCoordinates, end, tiles, move_type="8-dir"):
-        openList = []
-        closedList = []
-        
-        openList.append({"x": startCoordinates[0], "y": startCoordinates[1], "f": 0, "g": 0, "h":0, "p": None})
-        
-        W = tiles.width
-        H = tiles.height
-
-        def in_bounds(x, y):
-            return 0 <= x < W and 0 <= y < H
-        
-        def is_blocked(x, y):
-            return tiles.get(x, y) == 5
-        
-        def heuristic(x, y):
-            if move_type == "4-dir":
-                return abs(x - end[0]) + abs(y - end[1])
-            else:
-                return math.sqrt(abs(x - end[0])**2 + abs(y - end[1])**2)
             
-        def neighbors(x, y):
-            out = []
-            for dx in range(-1, 2):
-                for dy in range(-1, 2):
-                    if dx == 0 and dy == 0:
-                        continue
-                    if move_type == "4-dir" and dx != 0 and dy != 0:
-                        continue
-                    out.append((x + dx, y + dy, dx, dy))
-            return out
-        
-        while openList:
-            #print(sorted(openList, key=lambda x: x["f"]))
-            openList = sorted(openList, key=lambda x: x["f"])
-            curNode = openList.pop(0)
-            curKey = (curNode["x"], curNode["y"])
-    
-            if curKey in closedList:
-                continue
-            closedList.append(curKey)
-
-            if curKey == end:
-                path = []
-                n = curNode
-                while n is not None:
-                    path.append((n["x"], n["y"]))
-                    n = n["p"]
-                path.reverse()
-                return path
-
-            for nx, ny, dx, dy in neighbors(curNode["x"], curNode["y"]):
-                if not in_bounds(nx, ny) or is_blocked(nx, ny):
-                    continue
-                step_cost = 1
-                g_cost = curNode["g"] + step_cost
-                h_cost = heuristic(nx, ny)
-                f_cost = g_cost + h_cost
-
-                worse = False
-                for node in openList:
-                    if node["x"] == nx and node["y"] == ny and g_cost >= node["g"]:
-                        worse = True
-                        break
-                if worse:
-                    continue
-
-                openList.append({"x": nx, "y": ny, "f": f_cost, "g": g_cost, "h": h_cost, "p": curNode})
-            
-                
-        return None
-                
             
 char = Chr.Character()
 char.load_from_json("yoitsnew")
 char.set_xy(100, 100)
 
+enemy = Chr.Character()
+enemy.load_from_json("sandbag")
+enemy.set_xy(150, 150)
+
+character_list = [char, enemy]
+character_turn = 0
+
+
+
 # This can either be overworld or battle.
-game_mode = "overworld"
+game_mode = "battle"
 
 clock = pygame.time.Clock()
 
@@ -131,10 +68,14 @@ marker = Spr.LayeredSprite([{"sprite": markers_full.get_image(0), "layer": 0, "c
 
 camera_x, camera_y = 0, 0
 cam_ix, cam_iy = 0, 0
+cam_target = (-1, -1)
+reached_target = True
 cam_speed = 1
 map_width, map_height = 3000, 12
 
 cur_map = Map.Maps(map_width, map_height)
+
+
 
 frame = 0
 
@@ -155,7 +96,8 @@ map_list = [
 curMapID = 0
 cur_map = Map.Maps.load("a")
 
-
+cur_battle = Bat.Battle(character_list)
+cur_battle.init_turn(cur_map)
 
 cabinet = pygame.image.load("sprites/arcades/snake_cabinet.png").convert_alpha()
 cabinet_curPos = (0,256)
@@ -168,6 +110,8 @@ mine = Arc.Minesweeper()
 last_few_maps = []
 
 path = None
+pathHighlight = None
+lastPathTarget = (-1,-1)
 
 test2 = Spr.AdvancedSpritesheet("sprites/characters/playable/Witch.png")
 
@@ -206,7 +150,12 @@ while True:
             if event.key == pygame.K_ESCAPE:
                 Map.Maps.unload_temp()
                 exit()
+            elif event.key == pygame.K_4:
+                    curMapID += 1
+                    cur_map = Map.Maps.load(map_list[curMapID % len(map_list)])
+                    cur_battle.init_turn(cur_map)
             if Txt.Debug.map_editor:
+            
                 if event.key == pygame.K_0:
                     Txt.Debug.editorMapMode = "Logic"
                     cur_map.showVisMap = False
@@ -224,12 +173,11 @@ while True:
                         Txt.Debug.map_tile %= cur_map.cur_total_tiles
                     
                 elif event.key == pygame.K_3:
-                    path = AStar.Pathfind((1,1), ((mouse_x + cam_ix) // 16, (mouse_y + cam_iy) // 16), cur_map)
+                    path = Chr.Pathfinder.Pathfind((math.ceil((char.x + 0.5) // 16), math.ceil((char.y + 0.5) // 16)), ((mouse_x + cam_ix) // 16, (mouse_y + cam_iy) // 16), cur_map, "4-dir", 5)
                     
-                    
-                elif event.key == pygame.K_4:
-                    curMapID += 1
-                    cur_map = Map.Maps.load(map_list[curMapID % len(map_list)])
+                
+
+
                 elif event.key == pygame.K_5:
                     mine = Arc.Minesweeper()
                     mine.countMines()
@@ -264,6 +212,7 @@ while True:
                     #print(last_few_maps)
                     if len(last_few_maps) > 0:
                         cur_map = last_few_maps.pop()
+            
         if event.type == pygame.MOUSEWHEEL:
             if Txt.Debug.map_editor:
                 Txt.Debug.map_tile += event.y
@@ -300,6 +249,13 @@ while True:
                     spr_selected_tile = sprsh_tileset.get_image(cur_map.cur_tile_indices[Txt.Debug.map_tile])
             game_screen.blit(spr_selected_tile, spr_selected_tile.get_rect(center=(round((mouse_x - 8 + cam_ix % 16) / 16) * 16 + 8 - cam_ix % 16, round((mouse_y - 8 + cam_iy % 16) / 16) * 16 + 8 - cam_iy % 16)))
             
+    else:
+        if pygame.mouse.get_pressed()[0]:
+            cur_battle.input(((mouse_x + cam_ix) // 16, (mouse_y + cam_iy) // 16), (), cur_map)
+
+
+        #elif pygame.mouse.get_pressed()[2]:
+
     if pygame.key.get_pressed()[pygame.K_LSHIFT] or pygame.key.get_pressed()[pygame.K_RSHIFT]:
         if game_mode == "battle":
             cam_speed = 4
@@ -312,7 +268,7 @@ while True:
     #dead_zone_x, dead_zone_y = 2, 2
     input = (cam_speed * (pygame.key.get_pressed()[pygame.K_d] - pygame.key.get_pressed()[pygame.K_a]), cam_speed * (pygame.key.get_pressed()[pygame.K_s] - pygame.key.get_pressed()[pygame.K_w]))
     char.overworld_movement(input, cur_map)
-    if game_mode == "battle":
+    if game_mode == "debug":
         if pygame.key.get_pressed()[pygame.K_UP]:
             camera_y -= cam_speed
         if pygame.key.get_pressed()[pygame.K_DOWN]:
@@ -322,13 +278,46 @@ while True:
         if pygame.key.get_pressed()[pygame.K_RIGHT]:
             camera_x += cam_speed
     elif game_mode == "overworld":
-        camera_x = (camera_x + (input[0] * 24 + char.x - camera_x - game_width / 2) / 20)
-        camera_y = (camera_y + (input[1] * 24 + char.y - camera_y - game_height / 2) / 20)
+        cur_character = cur_battle.character_list[cur_battle.char_turn]
+        camera_x = (camera_x + (input[0] * 24 + cur_character.x - camera_x - game_width / 2) / 20)
+        camera_y = (camera_y + (input[1] * 24 + cur_character.y - camera_y - game_height / 2) / 20)
         camera_x = max(0, min(camera_x, cur_map.width * 16 - game_width))
         camera_y = max(0, min(camera_y, cur_map.height * 16 - game_height))
+    elif game_mode == "battle":
+        cur_character = cur_battle.character_list[cur_battle.char_turn]
+        if cam_target != (cur_character.x + 8, cur_character.y + 8):
+            cam_target = (cur_character.x + 8, cur_character.y + 8)
+            reached_target = False
+        if reached_target == False:
+            camera_x = (camera_x + (cam_target[0] - camera_x - game_width / 2) / 20)
+            camera_y = (camera_y + (cam_target[1] - camera_y - game_height / 2) / 20)
+            if abs((cam_target[0] - camera_x - game_width / 2)) < 1 and abs((cam_target[1] -camera_y - game_height / 2)) < 1:
+                camera_x = cam_target[0] - game_width / 2
+                camera_y = cam_target[1] - game_height / 2
+                reached_target = True
+        if pygame.key.get_pressed()[pygame.K_UP]:
+            reached_target = True
+            camera_y -= cam_speed
+        if pygame.key.get_pressed()[pygame.K_DOWN]:
+            reached_target = True
+            camera_y += cam_speed
+        if pygame.key.get_pressed()[pygame.K_LEFT]:
+            reached_target = True
+            camera_x -= cam_speed
+        if pygame.key.get_pressed()[pygame.K_RIGHT]:
+            reached_target = True
+            camera_x += cam_speed
+        limited_camera_x = max(0, min(camera_x, cur_map.width * 16 - game_width))
+        limited_camera_y = max(0, min(camera_y, cur_map.height * 16 - game_height))
+        if limited_camera_x != camera_x and limited_camera_y != camera_y:
+            reached_target = True
+        if limited_camera_x != camera_x:
+            camera_x = limited_camera_x
+        if limited_camera_y != camera_y:
+            camera_y = limited_camera_y
+        #print(abs((cam_target[0] - camera_x - game_width / 2) ))
     cam_ix = math.floor(camera_x)
     cam_iy = math.floor(camera_y)
-    char.render(game_screen, (cam_ix, cam_iy), frame)
     
     #game_screen.blit(sprsh_tileset.get_image(round(frame / 16)), (16, 16))
     
@@ -344,13 +333,20 @@ while True:
     '''    
     path = AStar.Pathfind((1,1), ((mouse_x + camera_x) // 16, (mouse_y + camera_y) // 16), cur_map)   
     '''
-    if path != None:
+    if path != None and len(path) != 0:
         #print(path)
-        
-        for i in path:
-            #print(i)
-            #marker.draw(i["x"] * 16 - camera_x, i["y"] * 16 - camera_y - 16)
-            game_screen.blit(pygame.image.load("sprites/characters/placeholderNew.png"), (i[0] * 16 - cam_ix, i[1] * 16 - cam_iy))
+        char.walk(path, cur_map, cam_speed)
+        if (char.x + 0.5) // 16 == path[0][0] and (char.y + 0.5) // 16 == path[0][1]:
+            path.pop(0)
+        if Txt.Debug.map_editor:
+            for i in path:
+                #print(i)
+                #marker.draw(i["x"] * 16 - camera_x, i["y"] * 16 - camera_y - 16)
+                game_screen.blit(pygame.image.load("sprites/characters/placeholderNew.png"), (i[0] * 16 - cam_ix, i[1] * 16 - cam_iy))
+
+    cur_battle.update(cur_map, cam_speed)
+    cur_battle.render(game_screen, (cam_ix, cam_iy), frame)
+
 
     game_screen.blit(cabinet, cabinet_curPos)
     

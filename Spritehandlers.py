@@ -105,6 +105,7 @@ class AdvancedSpritesheet():
         self.current_anim = None
         self.animStartFrame = 0
         self.height = 0
+        self.width = 0
         if os.path.exists(filename):
             with open(filename, "r") as f:
                 self.image = pygame.image.load(filename).convert_alpha()
@@ -172,7 +173,8 @@ class AdvancedSpritesheet():
         cur_data = self.data[index]
         image = pygame.Surface((int(cur_data["frameWidth"]), int(cur_data["frameHeight"])), pygame.SRCALPHA).convert_alpha()
         image.blit(self.image, (-1 * int(cur_data["frameX"]), -1 * int(cur_data["frameY"])), (int(cur_data["x"]), int(cur_data["y"]), int(cur_data["width"]), int(cur_data["height"])))
-        self.height = int(cur_data["frameHeight"]) + int(cur_data["frameY"]) - 8 
+        self.height = int(cur_data["frameHeight"]) + int(cur_data["frameY"])
+        self.width = int(cur_data["frameWidth"]) + int(cur_data["frameX"])
         #image = pygame.transform.scale(image, (64, 64))
         return image
         

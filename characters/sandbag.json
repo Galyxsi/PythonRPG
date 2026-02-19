@@ -1,0 +1,18 @@
+{
+  "id": "sandbag",
+  "first_name": "Sandy",
+  "mid_name": "B.",
+  "last_name": "Moneybags",
+  "sprite": "sprites/characters/playable/SandbagTemplate.png",
+  "stats": { 
+    "hp": {"base": 1, "enhanced": true},
+    "atk": {"base": 1, "enhanced": false},
+    "def": {"base": 1, "enhanced": false},
+    "spatk": {"base": 1, "enhanced": false},
+    "spdef": {"base": 1, "enhanced": false},
+    "spd": {"base": 1, "enhanced": false}
+  },
+  "move": 30,
+  "class": "new",
+  "size": "medium"
+}

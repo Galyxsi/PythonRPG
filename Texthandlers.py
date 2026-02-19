@@ -106,7 +106,7 @@ class Font:
 
 class Debug:
     debug_messages = True
-    map_editor = True
+    map_editor = False
     map_tile = 0
     debug_message_fade = 60
     editorMapMode = "Visual"
