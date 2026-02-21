@@ -25,12 +25,12 @@ class Maps():
     '''
 
     tiles = {
-        0: {"name": "grass", "move": 1, "block": False},
-        1: {"name": "water", "move": 1, "swim": 1, "block": True},
-        2: {"name": "lava", "move": 1.5, "block": True},
-        3: {"name": "cover", "move": 0.75, "block": False},
-        4: {"name": "rough", "move": 2, "block": False},
-        5: {"name": "wall", "move": 0, "block": True},
+        0: {"name": "grass", "move": 1, "map_move": 1, "block": False},
+        1: {"name": "water", "move": 1, "map_move": 1, "swim": 1, "map_swim": 1, "block": True},
+        2: {"name": "lava", "move": 1.5, "map_move": 1.5, "block": True},
+        3: {"name": "cover", "move": 0.75, "map_move": 0.5, "block": False},
+        4: {"name": "rough", "move": 2, "map_move": 2.5, "block": False},
+        5: {"name": "wall", "move": 0, "map_move": 0, "block": True},
     }
     
     dualTileFormat = {

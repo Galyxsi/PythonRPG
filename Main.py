@@ -19,7 +19,6 @@ import Charhandlers as Chr
 import Arcades as Arc
 # Battle System
 import Battlehandlers as Bat
-
 os.environ['SDL_AUDIODRIVER'] = 'dsp'
 
 pygame.init()
@@ -46,13 +45,12 @@ char.load_from_json("yoitsnew")
 char.set_tilexy(5, 5)
 
 enemy = Chr.Character()
+#enemy.load_from_json("sandbag")
 enemy.load_from_json("sandbag")
 enemy.set_tilexy(8, 8)
 
 character_list = [char, enemy]
 character_turn = 0
-
-
 
 # This can either be overworld or battle.
 game_mode = "battle"
@@ -81,17 +79,17 @@ frame = 0
 
 map_list = [
     "!default_test_map",
-    "!lines",
-    "ai_testing/!river_outpost",
-    "ai_testing/!demo16x16",
-    "ai_testing/!windsurf_test",
-    "ai_testing/!island_outpost",
-    "ai_testing/!custom_island",
-    "ai_testing/!ruined_courtyard32x32",
-    "ai_testing/!custom_map_rle",
-    "ai_testing/!custom64",
+    #"!lines",
+    #"ai_testing/!river_outpost",
+    #"ai_testing/!demo16x16",
+    #"ai_testing/!windsurf_test",
+    #"ai_testing/!island_outpost",
+    #"ai_testing/!custom_island",
+    #"ai_testing/!ruined_courtyard32x32",
+    #"ai_testing/!custom_map_rle",
+    #"ai_testing/!custom64",
     "ai_testing/!obsidian_oasis",
-    "ai_testing/!dungeon"
+    #"ai_testing/!dungeon"
 ]
 curMapID = 0
 cur_map = Map.Maps.load("a")
@@ -154,6 +152,10 @@ while True:
                     curMapID += 1
                     cur_map = Map.Maps.load(map_list[curMapID % len(map_list)])
                     cur_battle.init_turn(cur_map)
+            elif event.key == pygame.K_9:
+                cur_battle.tp_all_char((round(mouse_x + cam_ix), round(mouse_y + cam_iy)), cur_map)
+            elif event.key == pygame.K_8:
+                Txt.Debug.map_editor = not Txt.Debug.map_editor
             if Txt.Debug.map_editor:
             
                 if event.key == pygame.K_0:
@@ -219,6 +221,11 @@ while True:
         if event.type == pygame.VIDEORESIZE:
             real_screen = pygame.display.set_mode(event.size, pygame.RESIZABLE)
 
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if Txt.Debug.map_editor:
+                pass
+            else:
+                cur_battle.input(((mouse_x + cam_ix) // 16, (mouse_y + cam_iy) // 16), (), cur_map)
          
         if Txt.Debug.editorMapMode == "Visual":
             if cur_map.cur_total_tiles != 0:
@@ -250,8 +257,8 @@ while True:
             game_screen.blit(spr_selected_tile, spr_selected_tile.get_rect(center=(round((mouse_x - 8 + cam_ix % 16) / 16) * 16 + 8 - cam_ix % 16, round((mouse_y - 8 + cam_iy % 16) / 16) * 16 + 8 - cam_iy % 16)))
             
     else:
-        if pygame.mouse.get_pressed()[0]:
-            cur_battle.input(((mouse_x + cam_ix) // 16, (mouse_y + cam_iy) // 16), (), cur_map)
+        pass
+        
 
 
         #elif pygame.mouse.get_pressed()[2]:

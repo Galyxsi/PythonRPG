@@ -105,7 +105,7 @@ class Font:
     
 
 class Debug:
-    debug_messages = True
+    debug_messages = False
     map_editor = False
     map_tile = 0
     debug_message_fade = 60

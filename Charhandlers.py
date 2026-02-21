@@ -1,18 +1,20 @@
 import json
 import math
+import heapq
 
 import Maphandlers as Map
 import Spritehandlers as Spr
 
+
 class Pathfinder:    
     @staticmethod
-    def Pathfind(startCoordinates, end, tiles, move_type="8-dir", limit=10):
+    def Pathfind(startCoordinates, end, tiles, move_type="8-dir", swim=0, limit=10):
         openList = []
         closedList = []
         
         count = 0
 
-        openList.append({"x": startCoordinates[0], "y": startCoordinates[1], "f": 0, "g": 0, "h":0, "p": None, "c": 0})
+        openList.append({"x": startCoordinates[0], "y": startCoordinates[1], "f": 0, "g": 0, "h":0, "p": None, "c": 0, "cn": 0, "cw": 0, "w": False})
         
         W = tiles.width
         H = tiles.height
@@ -20,9 +22,15 @@ class Pathfinder:
         def in_bounds(x, y):
             return 0 <= x < W and 0 <= y < H
         
-        def is_blocked(x, y):
+        def is_blocked(x, y, swim=0):
+            cur_tile = Map.Maps.tiles[tiles.get(x, y)]
             #print(Map.Maps.tiles[tiles.get(x, y)])
-            return Map.Maps.tiles[tiles.get(x, y)]["block"]
+            if swim == 0:
+                return cur_tile["block"]
+            elif "swim" in cur_tile and swim > 0:
+                return False
+            else:
+                return cur_tile["block"]
         
         def heuristic(x, y):
             if move_type == "4-dir":
@@ -55,16 +63,33 @@ class Pathfinder:
             if curKey == end:
                 path = []
                 n = curNode
+                c = {"normal": 0, "water": 0}
                 while n is not None:
                     path.append((n["x"], n["y"]))
+                    if n["w"]:
+                        #print(n["c"])
+                        c["water"] += n["cw"]
+                    else:
+                        c["normal"] += n["cn"]
                     n = n["p"]
                 path.reverse()
-                return path
+                #print(c)
+                return path, c
 
             for nx, ny, dx, dy in neighbors(curNode["x"], curNode["y"]):
-                if not in_bounds(nx, ny) or is_blocked(nx, ny):
+                if not in_bounds(nx, ny) or is_blocked(nx, ny, swim):
                     continue
-                step_cost = Map.Maps.tiles[tiles.get(nx, ny)]["move"]
+                cur_tile = Map.Maps.tiles[tiles.get(nx, ny)]
+                wate_cost = 0
+                norm_cost = 0
+                if "swim" in cur_tile and swim != 0:
+                    step_cost = cur_tile["map_swim"]
+                    wate_cost = cur_tile["map_swim"]
+                    water_tile = True
+                else:
+                    step_cost = cur_tile["map_move"]
+                    norm_cost = cur_tile["map_move"]
+                    water_tile = False
                 g_cost = curNode["g"] + step_cost
                 h_cost = heuristic(nx, ny)
                 f_cost = g_cost + h_cost
@@ -79,10 +104,91 @@ class Pathfinder:
                 
                 if curNode["c"] + step_cost > limit:
                     continue
-                openList.append({"x": nx, "y": ny, "f": f_cost, "g": g_cost, "h": h_cost, "p": curNode, "c": curNode["c"] + step_cost})
+                
+                openList.append({"x": nx, "y": ny, "f": f_cost, "g": g_cost, "h": h_cost, "p": curNode, "c": curNode["c"] + step_cost, "cn": norm_cost, "cw": wate_cost, "w": water_tile})
             
                 
-        return []
+        return [], {"normal": 0, "water": 0}
+    
+    @staticmethod
+    def Dijkstra(start, map, move_limit, swim_limit, move_type="4-dir"):
+        W, H = map.width, map.height
+        best = {}
+        parent = {}
+
+        def in_bounds(x, y):
+            return 0 <= x < W and 0 <= y < H
+
+        def tile_info(x, y):
+            return Map.Maps.tiles[map.get(x, y)]
+        
+        def is_blocked(x, y, ):
+            cur_tile = tile_info(x, y)
+            if swim_limit == 0:
+                return cur_tile["block"]
+            elif "swim" in cur_tile and swim_limit > 0:
+                return False
+            else:
+                return cur_tile["block"]
+            
+        def neighbors(x, y):
+            if move_type == "4-dir":
+                return [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+            else:
+                out = []
+                for dx in range(-1, 2):
+                    for dy in range(-1, 2):
+                        if dx == 0 and dy == 0:
+                            continue
+                        if dx != 0 and dy != 0:
+                            continue
+                        out.append((x + dx, y + dy))
+                return out
+
+        def dominated(x, y, n_used, w_used):
+            for n0, w0 in best.get((x, y), []):
+                if n0 <= n_used and w0 <= w_used:
+                    return True
+            return False
+        
+        def add_state(x, y, n_used, w_used):
+            lst = best.get((x, y), [])
+            new_lst = []
+            for n0, w0 in lst:
+                if not (n_used <= n0 and w_used <= w0):
+                    new_lst.append((n0, w0))
+            new_lst.append((n_used, w_used))
+            best[(x, y)] = new_lst
+
+        sx, sy = start
+        add_state(sx, sy, 0, 0)
+
+        pq = []
+        heapq.heappush(pq, (0, 0, 0, sx, sy))
+
+        while pq:
+            _, n_used, w_used, x, y = heapq.heappop(pq)
+            if dominated(x, y, n_used, w_used):
+                continue
+            for nx, ny in neighbors(x, y):
+                if not in_bounds(nx, ny) or is_blocked(nx, ny):
+                    continue
+                t = tile_info(nx, ny)
+
+                nn, ww = n_used, w_used
+
+                if swim_limit > 0 and "swim" in t:
+                    step = t["map_swim"]
+                    ww += step
+                else:
+                    step = t["map_move"]
+                    nn += step
+
+                #if nn > move_limit or ww > swim_limit:
+
+
+
+        pass
     
 
 class Stat:
@@ -110,6 +216,7 @@ class Character:
         self.y = pos[1]
         self.sheet = Spr.AdvancedSpritesheet(sheet)
         self.movement_speed = 30
+        self.swim_speed = 0
         self.stats = {}
         
         self.dir = 0
@@ -135,14 +242,14 @@ class Character:
         if movementVec[0] != 0:
             if map.get((curX + newXi + 8) // 16, (curY + 8) // 16) != -1:
                 map_tile = map.tiles[map.get((curX + newXi + 8) // 16, (curY + 8) // 16)]
-                if  map_tile["block"]:
+                if  map_tile["block"] and not ("swim" in map_tile and self.swim_speed > 0):
                     newX = 0
                 else:
                     newX *= 1/map_tile["move"]
         if movementVec[1] != 0:
             if map.get((curX + 8) // 16, (curY + newYi + 8) // 16) != -1:
                 map_tile = map.tiles[map.get((curX + 8) // 16, (curY + newYi + 8) // 16)]
-                if map_tile["block"]:
+                if map_tile["block"] and not ("swim" in map_tile and self.swim_speed > 0):
                     newY = 0
                 else:
                     newY *= 1/map_tile["move"]
@@ -169,6 +276,9 @@ class Character:
             self.sheet = Spr.AdvancedSpritesheet(data["sprite"])
             self.names = [data["first_name"], data["mid_name"], data["last_name"]]
             self.stats = {}
+            self.movement_speed = data["move"]
+            if "swim" in data:
+                self.swim_speed = data["swim"]
             for i in data["stats"]:
                 if i != "move":
                     self.stats[i] = Stat(i, data["stats"][i]["base"], data["stats"][i]["enhanced"], self.level)

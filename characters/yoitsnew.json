@@ -13,6 +13,7 @@
     "spd": {"base": 65, "enhanced": false}
   },
   "move": 30,
+  "swim": 30,
   "class": "new",
   "size": "medium"
 }
