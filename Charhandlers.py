@@ -6,6 +6,7 @@ import Maphandlers as Map
 import Spritehandlers as Spr
 
 
+
 class Pathfinder:    
     @staticmethod
     def Pathfind(startCoordinates, end, tiles, move_type="8-dir", swim=0, limit=10):
@@ -110,27 +111,24 @@ class Pathfinder:
                 
         return [], {"normal": 0, "water": 0}
     
-    @staticmethod
-    def Dijkstra(start, map, move_limit, swim_limit, move_type="4-dir"):
-        W, H = map.width, map.height
-        best = {}
-        parent = {}
-
+    def FloodFill(start, tiles, move_type="4-dir", swim=0, limit=10):
+        W, H = tiles.width, tiles.height
+        
         def in_bounds(x, y):
             return 0 <= x < W and 0 <= y < H
-
-        def tile_info(x, y):
-            return Map.Maps.tiles[map.get(x, y)]
         
-        def is_blocked(x, y, ):
+        def tile_info(x, y):
+            return Map.Maps.tiles[tiles.get(x, y)]
+        
+        def is_blocked(x, y):
             cur_tile = tile_info(x, y)
-            if swim_limit == 0:
+            if swim == 0:
                 return cur_tile["block"]
-            elif "swim" in cur_tile and swim_limit > 0:
+            elif "swim" in cur_tile and swim > 0:
                 return False
             else:
                 return cur_tile["block"]
-            
+        
         def neighbors(x, y):
             if move_type == "4-dir":
                 return [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
@@ -144,51 +142,61 @@ class Pathfinder:
                             continue
                         out.append((x + dx, y + dy))
                 return out
-
-        def dominated(x, y, n_used, w_used):
-            for n0, w0 in best.get((x, y), []):
-                if n0 <= n_used and w0 <= w_used:
-                    return True
-            return False
         
-        def add_state(x, y, n_used, w_used):
-            lst = best.get((x, y), [])
-            new_lst = []
-            for n0, w0 in lst:
-                if not (n_used <= n0 and w_used <= w0):
-                    new_lst.append((n0, w0))
-            new_lst.append((n_used, w_used))
-            best[(x, y)] = new_lst
-
-        sx, sy = start
-        add_state(sx, sy, 0, 0)
-
-        pq = []
-        heapq.heappush(pq, (0, 0, 0, sx, sy))
-
-        while pq:
-            _, n_used, w_used, x, y = heapq.heappop(pq)
-            if dominated(x, y, n_used, w_used):
-                continue
+        
+        fullList = []
+        fullStat = []
+        limitedList = []
+        limitedStat = []
+        limitedList.append((start[0], start[1]))
+        limitedStat.append(((0,0),(0,0)))
+        validMovement = []
+        vMStat = []
+        
+        #print("Limit:" + str(limit))
+        #print("Swim:" + str(swim))
+        while limitedList:
+            curPos = limitedList.pop(0)
+            curStt = limitedStat.pop(0)
+            x, y, parent, counts = curPos[0], curPos[1], curStt[0], curStt[1]
+            #print(counts)
             for nx, ny in neighbors(x, y):
-                if not in_bounds(nx, ny) or is_blocked(nx, ny):
-                    continue
-                t = tile_info(nx, ny)
-
-                nn, ww = n_used, w_used
-
-                if swim_limit > 0 and "swim" in t:
-                    step = t["map_swim"]
-                    ww += step
-                else:
-                    step = t["map_move"]
-                    nn += step
-
-                #if nn > move_limit or ww > swim_limit:
-
-
-
-        pass
+                if not fullList.count((nx, ny)) > 50: 
+                    info = tile_info(nx, ny)
+                    fullList.append((nx, ny))
+                    
+                    moveCost = counts[0]
+                    swimCost = counts[1]
+                    if "swim" in info:
+                        swimO = info["swim"]
+                        fullStat.append(((x,y), (0, counts[1] + swimO)))
+                        #print(swimO + counts[1])
+                        if counts[1] + swimO > swim // 5:
+                            continue
+                        swimCost = info["swim"] + counts[1]
+                    else:
+                        fullStat.append(((x,y), (counts[0] + info["move"], 0)))
+                        if counts[0] + info["move"] > limit // 5:
+                            continue  
+                        moveCost = info["move"] + counts[0]
+                    if is_blocked(nx, ny):
+                        continue
+                    #if (nx, ny) in limitedList:
+                        #if moveCost < limitedStat[limitedList.index((nx, ny))][1][0] or swimCost < limitedStat[limitedList.index((nx, ny))][1][1]:
+                            #limitedStat[limitedList.index((nx, ny))] = ((x, y), (moveCost, swimCost))
+                    #else:
+                    #print((moveCost, swimCost))
+                    limitedList.append((nx, ny))
+                    limitedStat.append(((x, y), (moveCost, swimCost)))
+                        
+                    #print("added: " + str((nx, ny)))
+                    if not (nx, ny) in validMovement:
+                        validMovement.append((nx, ny))
+                        #print("move: " + str(moveCost) + ", swim: " + str(swimCost))
+                        vMStat.append(((x, y), (moveCost, swimCost)))
+                    #print("added: " + str((nx, ny)))
+                    
+        return validMovement    
     
 
 class Stat:

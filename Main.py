@@ -291,10 +291,13 @@ while True:
         camera_x = max(0, min(camera_x, cur_map.width * 16 - game_width))
         camera_y = max(0, min(camera_y, cur_map.height * 16 - game_height))
     elif game_mode == "battle":
-        cur_character = cur_battle.character_list[cur_battle.char_turn]
-        if cam_target != (cur_character.x + 8, cur_character.y + 8):
-            cam_target = (cur_character.x + 8, cur_character.y + 8)
+        if cam_target != cur_battle.cur_cam_target():
+            cam_target = cur_battle.cur_cam_target()
             reached_target = False
+        #cur_character = cur_battle.character_list[cur_battle.char_turn]
+        #if cam_target != (cur_character.x + 8, cur_character.y + 8):
+        #    cam_target = (cur_character.x + 8, cur_character.y + 8)
+        #    reached_target = False
         if reached_target == False:
             camera_x = (camera_x + (cam_target[0] - camera_x - game_width / 2) / 20)
             camera_y = (camera_y + (cam_target[1] - camera_y - game_height / 2) / 20)

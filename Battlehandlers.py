@@ -1,6 +1,7 @@
 import Charhandlers as Chr
 import math
 import pygame
+
 class Battle:
     def __init__(self, character_list):
         self.character_list = character_list
@@ -13,9 +14,12 @@ class Battle:
         self.char_turn = 0
         self.turn = 0
         self.spr_available_tile = pygame.image.load("sprites/tilesets/available_tile.png").convert_alpha() 
+        self.cam_target = (0,0)
     
     def init_turn(self, map):
         self.char_turn = 0
+        cur_char = self.character_list[self.char_turn]
+        self.cam_target = (cur_char.x, cur_char.y)
         self.available_tiles = self.load_available_movement(map)
 
     def load_available_movement(self, map):
@@ -25,17 +29,20 @@ class Battle:
         available_tiles = []
         max_steps = (current_char.movement_speed + current_char.swim_speed) // 5
         #max_steps = current_char.movement_speed
-        for i in range(-max_steps, max_steps + 1):
-            for j in range(-max_steps, max_steps + 1):
-                if i == 0 and j == 0:
-                    continue
+        available_tiles = Chr.Pathfinder.FloodFill(start_tile, map, "4-dir", current_char.swim_speed, current_char.movement_speed)
+        #for i in range(-max_steps, max_steps + 1):
+        #    for j in range(-max_steps, max_steps + 1):
+        #        if i == 0 and j == 0:
+        #            continue
                 
-                pathfound, costs = Chr.Pathfinder.Pathfind(start_tile, (start_tile[0] + i, start_tile[1] + j), map, "4-dir", current_char.swim_speed, max_steps)
+                #pathfound, costs = Chr.Pathfinder.Pathfind(start_tile, (start_tile[0] + i, start_tile[1] + j), map, "4-dir", current_char.swim_speed, max_steps)
+                
+        #        pathfound = Chr.Pathfinder.Pathfind(start_tile, (start_tile[0] + i, start_tile[1] + j), map, "4-dir", current_char.swim_speed, max_steps)
                 
                 #print("norm:" + str(costs["normal"]) + " water:" + str(costs["water"]) + " pos: (" + str(start_tile[0] + i) + ", " + str(start_tile[1] + j) + ")")
-
-                if pathfound and ( costs["normal"] <= current_char.movement_speed // 5 and costs["water"] <= current_char.swim_speed // 5):
-                    available_tiles.append((start_tile[0] + i, start_tile[1] + j))
+                
+                #if pathfound and ( costs["normal"] <= current_char.movement_speed // 5 and costs["water"] <= current_char.swim_speed // 5):
+                #    available_tiles.append((start_tile[0] + i, start_tile[1] + j))
         return available_tiles
 
     def next_turn(self, map):
@@ -81,6 +88,18 @@ class Battle:
 
     def char_tile_pos(self, character):
         return (round((character.x) / 16), round((character.y) / 16))
+
+    def cur_cam_target(self):
+        path_count = 0
+        for char in self.character_list:
+            path = self.character_paths[char]
+            if path and len(path) > 0:
+                path_count += 1
+                self.cam_target = (char.x, char.y)
+        if path_count == 0:
+            cur_char = self.character_list[self.char_turn]
+            self.cam_target = (cur_char.x, cur_char.y)
+        return self.cam_target
 
     def update(self, map, walkSpeed):
         for i, character in enumerate(self.character_list):

@@ -12,7 +12,7 @@
     "spdef": {"base": 1, "enhanced": false},
     "spd": {"base": 1, "enhanced": false}
   },
-  "move": 30,
+  "move": 15,
   "class": "new",
   "size": "medium"
 }
