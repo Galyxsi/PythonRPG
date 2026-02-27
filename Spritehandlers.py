@@ -220,3 +220,17 @@ class LayeredSprite:
                             if sprite["sprite"].get_at((xi, yi)) != (0, 0, 0, 0):
                                 sprite["sprite"].set_at((xi, yi), sprite["color"])
                 screen.blit(sprite["sprite"], (x, y))
+                
+class NineSlice:
+    
+    def __init__(self, filename, tile_size):
+        self.sprite_list = {}
+        self.sheet = pygame.image.load("sprites/ui/nine_slice/" + filename).convert_alpha()
+        #print(self.sheet.get_width())
+        for i in range(self.sheet.get_width() // tile_size):
+            for j in range(self.sheet.get_height() // tile_size):
+                self.sprite_list[(i, j)] = pygame.Surface((tile_size, tile_size), pygame.SRCALPHA).convert_alpha()
+                self.sprite_list[(i, j)].blit(self.sheet, (i * tile_size, j * tile_size, tile_size, tile_size))
+            
+    def draw(self, x, y, width, height):
+        pass

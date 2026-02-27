@@ -1,20 +1,19 @@
 {
-  "id": "sandbag",
-  "first_name": "Sandy",
-  "mid_name": "Banks",
-  "last_name": "Moneybags",
-  "sprite": "sprites/characters/playable/SandbagTemplate.png",
-  "team": "player",
+  "id": "badbag",
+  "first_name": "Sanderson",
+  "mid_name": "Demetrius",
+  "last_name": "Baggins",
+  "sprite": "sprites/characters/playable/BadBag.png",
+  "team": "enemy",
   "stats": { 
-    "hp": {"base": 100, "enhanced": true},
+    "hp": {"base": 1, "enhanced": true},
     "atk": {"base": 1, "enhanced": false},
     "def": {"base": 1, "enhanced": false},
     "spatk": {"base": 1, "enhanced": false},
     "spdef": {"base": 1, "enhanced": false},
     "spd": {"base": 1, "enhanced": false}
   },
-  "move": 15,
-  "swim": 5,
+  "move": 20,
   "class": "new",
   "size": "medium"
 }

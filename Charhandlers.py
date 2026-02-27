@@ -6,10 +6,9 @@ import Maphandlers as Map
 import Spritehandlers as Spr
 
 
-
 class Pathfinder:    
     @staticmethod
-    def Pathfind(startCoordinates, end, tiles, move_type="8-dir", swim=0, limit=10):
+    def Pathfind(startCoordinates, end, tiles, move_type="8-dir", swim=0, limit=100, floate=False):
         openList = []
         closedList = []
         
@@ -25,6 +24,8 @@ class Pathfinder:
         
         def is_blocked(x, y, swim=0):
             cur_tile = Map.Maps.tiles[tiles.get(x, y)]
+            if floate and cur_tile["name"] != "wall":
+                return False
             #print(Map.Maps.tiles[tiles.get(x, y)])
             if swim == 0:
                 return cur_tile["block"]
@@ -57,6 +58,7 @@ class Pathfinder:
             curNode = openList.pop(0)
             curKey = (curNode["x"], curNode["y"])
     
+
             if curKey in closedList:
                 continue
             closedList.append(curKey)
@@ -83,6 +85,13 @@ class Pathfinder:
                 cur_tile = Map.Maps.tiles[tiles.get(nx, ny)]
                 wate_cost = 0
                 norm_cost = 0
+                #if floate == True:
+                #    step_cost = 0
+                #    wate_cost = 0
+                #    norm_cost = 0
+                #    water_tile = True
+                #else:
+                    
                 if "swim" in cur_tile and swim != 0:
                     step_cost = cur_tile["map_swim"]
                     wate_cost = cur_tile["map_swim"]
@@ -103,31 +112,38 @@ class Pathfinder:
                 if worse:
                     continue
                 
-                if curNode["c"] + step_cost > limit:
+                print(curNode["c"] + step_cost)
+                #if floate == False:
+                if curNode["c"] + step_cost > limit and floate == False:
                     continue
-                
                 openList.append({"x": nx, "y": ny, "f": f_cost, "g": g_cost, "h": h_cost, "p": curNode, "c": curNode["c"] + step_cost, "cn": norm_cost, "cw": wate_cost, "w": water_tile})
-            
                 
         return [], {"normal": 0, "water": 0}
     
-    def FloodFill(start, tiles, move_type="4-dir", swim=0, limit=10):
+    def FloodFill(start, tiles, move_type="4-dir", swim=0, limit=10, floate=0):
         W, H = tiles.width, tiles.height
         
         def in_bounds(x, y):
             return 0 <= x < W and 0 <= y < H
         
         def tile_info(x, y):
-            return Map.Maps.tiles[tiles.get(x, y)]
+            if tiles.get(x, y) != -1:
+                #print(Map.Maps.tiles[tiles.get(x, y)])
+                return Map.Maps.tiles[tiles.get(x, y)]
+            else:
+                return {"name": "null", "move": 0, "map_move": 0, "block": True}
         
-        def is_blocked(x, y):
+        def is_blocked(x, y, f):
             cur_tile = tile_info(x, y)
-            if swim == 0:
-                return cur_tile["block"]
-            elif "swim" in cur_tile and swim > 0:
+            if f and cur_tile["name"] != "wall":
                 return False
             else:
-                return cur_tile["block"]
+                if swim == 0:
+                    return cur_tile["block"]
+                elif "swim" in cur_tile and swim > 0:
+                    return False
+                else:
+                    return cur_tile["block"]
         
         def neighbors(x, y):
             if move_type == "4-dir":
@@ -149,7 +165,7 @@ class Pathfinder:
         limitedList = []
         limitedStat = []
         limitedList.append((start[0], start[1]))
-        limitedStat.append(((0,0),(0,0)))
+        limitedStat.append(((0,0),(0,0,0)))
         validMovement = []
         vMStat = []
         
@@ -167,19 +183,33 @@ class Pathfinder:
                     
                     moveCost = counts[0]
                     swimCost = counts[1]
+                    floatCost = counts[2]
+                    isFloating = False
                     if "swim" in info:
                         swimO = info["swim"]
-                        fullStat.append(((x,y), (0, counts[1] + swimO)))
+                        fullStat.append(((x,y), (counts[0], counts[1] + swimO, counts[2])))
                         #print(swimO + counts[1])
                         if counts[1] + swimO > swim // 5:
-                            continue
-                        swimCost = info["swim"] + counts[1]
+                            if counts[2] + 1 > floate // 5:
+                                continue
+                            else:
+                                fullStat.append(((x, y), (counts[0], counts[1], counts[2] + 1)))
+                                floatCost += 1
+                                isFloating = True
+                        else:
+                            swimCost = info["swim"] + counts[1]
                     else:
-                        fullStat.append(((x,y), (counts[0] + info["move"], 0)))
+                        fullStat.append(((x,y), (counts[0] + info["move"], counts[1], counts[2])))
                         if counts[0] + info["move"] > limit // 5:
-                            continue  
-                        moveCost = info["move"] + counts[0]
-                    if is_blocked(nx, ny):
+                            if counts[2] + 1 > floate // 5:
+                                continue 
+                            else:
+                                fullStat.append(((x, y), (counts[0], counts[1], counts[2] + 1)))
+                                floatCost += 1
+                                isFloating = True
+                        else:
+                            moveCost = info["move"] + counts[0]
+                    if is_blocked(nx, ny, isFloating):
                         continue
                     #if (nx, ny) in limitedList:
                         #if moveCost < limitedStat[limitedList.index((nx, ny))][1][0] or swimCost < limitedStat[limitedList.index((nx, ny))][1][1]:
@@ -187,17 +217,16 @@ class Pathfinder:
                     #else:
                     #print((moveCost, swimCost))
                     limitedList.append((nx, ny))
-                    limitedStat.append(((x, y), (moveCost, swimCost)))
+                    limitedStat.append(((x, y), (moveCost, swimCost, floatCost)))
                         
                     #print("added: " + str((nx, ny)))
-                    if not (nx, ny) in validMovement:
+                    if not (nx, ny) in validMovement and not (nx, ny) == start:
                         validMovement.append((nx, ny))
                         #print("move: " + str(moveCost) + ", swim: " + str(swimCost))
-                        vMStat.append(((x, y), (moveCost, swimCost)))
+                        vMStat.append(((x, y), (moveCost, swimCost, floatCost)))
                     #print("added: " + str((nx, ny)))
                     
         return validMovement    
-    
 
 class Stat:
     
@@ -225,9 +254,10 @@ class Character:
         self.sheet = Spr.AdvancedSpritesheet(sheet)
         self.movement_speed = 30
         self.swim_speed = 0
+        self.float_speed = 0
         self.stats = {}
-        
-        self.dir = 0
+        self.team = ""
+        self.dir = 2
         self.movementVec = (0,0)
         
         self.level = 100
@@ -263,7 +293,7 @@ class Character:
                     newY *= 1/map_tile["move"]
         return newX, newY
 
-    def overworld_movement(self, input, map):
+    def overworld_movement(self, input, map, collide=True):
         movement = (input[0], input[1])
         self.movementVec = movement
         if math.floor(movement[1]) > 0:
@@ -274,7 +304,9 @@ class Character:
             self.dir = 1
         elif math.floor(movement[0]) < 0:
             self.dir = 3
-        newX, newY =  self.overworld_collide(movement, map)
+        newX, newY = movement[0], movement[1]
+        if collide:
+            newX, newY =  self.overworld_collide(movement, map)
         self.x += newX
         self.y += newY
         
@@ -285,14 +317,17 @@ class Character:
             self.names = [data["first_name"], data["mid_name"], data["last_name"]]
             self.stats = {}
             self.movement_speed = data["move"]
+            self.team = data["team"]
             if "swim" in data:
                 self.swim_speed = data["swim"]
+            if "float" in data:
+                self.float_speed = data["float"]
             for i in data["stats"]:
                 if i != "move":
                     self.stats[i] = Stat(i, data["stats"][i]["base"], data["stats"][i]["enhanced"], self.level)
                     print(self.stats[i])
                 #print(i)
-    def walk(self, path, map, walkSpeed):
+    def walk(self, path, map, walkSpeed, collide=True):
         target = (round(path[0][0]) * 16, round(path[0][1]) * 16)
         curX = round(self.x)
         curY = round(self.y)
@@ -314,7 +349,7 @@ class Character:
             yMove = 0
         movementVec = (xMove, yMove)
         #print(movementVec)
-        self.overworld_movement(movementVec, map)
+        self.overworld_movement(movementVec, map, collide)
 
             
     def render(self, screen, cam, frame=0):
