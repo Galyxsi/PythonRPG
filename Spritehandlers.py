@@ -224,13 +224,33 @@ class LayeredSprite:
 class NineSlice:
     
     def __init__(self, filename, tile_size):
+        self.tile_size = tile_size
         self.sprite_list = {}
         self.sheet = pygame.image.load("sprites/ui/nine_slice/" + filename).convert_alpha()
         #print(self.sheet.get_width())
         for i in range(self.sheet.get_width() // tile_size):
             for j in range(self.sheet.get_height() // tile_size):
+                print((i, j))
                 self.sprite_list[(i, j)] = pygame.Surface((tile_size, tile_size), pygame.SRCALPHA).convert_alpha()
-                self.sprite_list[(i, j)].blit(self.sheet, (i * tile_size, j * tile_size, tile_size, tile_size))
+                self.sprite_list[(i, j)].blit(self.sheet, (0,0), (i * tile_size, j * tile_size, tile_size, tile_size))
             
-    def draw(self, x, y, width, height):
-        pass
+    def draw(self, x, y, width, height, screen):
+        tile_width = max(1, width // self.tile_size - 1)
+        tile_height = max(1, height // self.tile_size - 1)
+        for i in range(tile_height):
+            for j in range(tile_width):
+                if i == 0 and j != tile_width - 1:
+                    screen.blit(self.sprite_list[(1,0)], (x + (j + 1) * self.tile_size, y))
+                    screen.blit(self.sprite_list[(1,2)], (x + (j + 1) * self.tile_size, y + height - self.tile_size))
+                #if i != 0 and j != 0 and i != tile_height and j != tile_width:
+                if i != tile_height - 1 and j != tile_width - 1:
+                    screen.blit(self.sprite_list[(1,1)], (x + (j + 1) * self.tile_size, y + (i + 1) * self.tile_size))
+            if i != tile_height - 1:
+                screen.blit(self.sprite_list[(0,1)], (x, y + (i + 1) * self.tile_size))
+                screen.blit(self.sprite_list[(2,1)], (x + width - self.tile_size, y + (i + 1) * self.tile_size))
+            
+        
+        screen.blit(self.sprite_list[(0,0)], (x, y))
+        screen.blit(self.sprite_list[(2,0)], (x + width - self.tile_size, y))
+        screen.blit(self.sprite_list[(0,2)], (x, y + height - self.tile_size))
+        screen.blit(self.sprite_list[(2,2)], (x + width - self.tile_size, y + height - self.tile_size))

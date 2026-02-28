@@ -27,16 +27,22 @@ pygame.init()
 # Screen initialisation
 game_width, game_height = 256, 240
 
+#pygame.display.gl_set_attribute(pygame.GL_MULTISAMPLEBUFFERS, 0)
+
 # This is the actual Pygame window, split from the game screen to allow for any size window without any stretching
-real_screen = pygame.display.set_mode((game_width * 2, game_height * 2), pygame.RESIZABLE)
+desktop_size = pygame.display.get_desktop_sizes()[0]
+real_screen = pygame.display.set_mode((desktop_size[0] // 2, desktop_size[1] // 2), pygame.RESIZABLE)
+#real_screen = pygame.display.set_mode(pygame.display.list_modes()[0])
+
 # What the game actually gets rendered on
 game_screen = pygame.Surface((game_width, game_height))
 # Currently for Snake minigame, likely to be repurposed for many minigames
 mini_snake_screen = pygame.Surface((32,32))
 
+
 # Used for testing an idea with the UI, unsure whether or not this will be kept
 hud_screen = pygame.Surface((64, game_height))
-#spr_hud_bg = Spr.NineSlice("nine_slice_test.png", 16)
+spr_hud_bg = Spr.NineSlice("nine_slice_test.png", 16)
 hud_alpha = 64
 hud_x = 8
 cur_hud_alpha = 64
@@ -183,6 +189,17 @@ while True:
                 # Delete temporary maps upon quitting
                 Map.Maps.unload_temp()
                 exit()
+            #if event.key == pygame.K_F11:
+            #    #game_width, game_height = 256, 240
+            #    fullSize = pygame.display.list_modes()[0]
+            #    print(pygame.display.get_surface().get_width() == fullSize[0] and pygame.display.get_surface().get_height() == fullSize[1])
+            #    if pygame.display.get_surface().get_width() == fullSize[0] and pygame.display.get_surface().get_height() == fullSize[1]:
+            #        pygame.display.set_mode((game_width, game_height), pygame.RESIZABLE)
+            #    else:
+            #        game_width, game_height = pygame.display.get_surface().get_width(), pygame.display.get_surface().get_height()
+            #        pygame.display.set_mode(fullSize, pygame.FULLSCREEN)
+                #pygame.display.toggle_fullscreen()
+                #print(full)
             if event.key == pygame.K_SPACE:
                 cur_battle.lock_in()
                 #cur_battle.next_turn(cur_map)
@@ -408,6 +425,11 @@ while True:
     game_screen.blit(cabinet, cabinet_curPos)
     
     # Draw the test UI to the game screen
+    
+    spr_hud_bg.draw(0,0,64,240,hud_screen)
+    for i in range(9):
+        spr_hud_bg.draw(8, 16 + i * 24, 48, 24, hud_screen)
+
     hud_screen.set_alpha(cur_hud_alpha)
     game_screen.blit(hud_screen, (game_width - cur_hud_x, 0))
 
