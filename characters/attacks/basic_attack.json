@@ -1,0 +1,9 @@
+{
+  "id": "basic_attack",
+  "name": "Attack",
+  "category": "attack",
+  "range": { "type": "touch" },
+  "effects": [
+    { "type": "damage", "power": 10, "min": 1 }
+  ]
+}

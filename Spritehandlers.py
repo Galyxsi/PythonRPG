@@ -230,7 +230,7 @@ class NineSlice:
         #print(self.sheet.get_width())
         for i in range(self.sheet.get_width() // tile_size):
             for j in range(self.sheet.get_height() // tile_size):
-                print((i, j))
+                #print((i, j))
                 self.sprite_list[(i, j)] = pygame.Surface((tile_size, tile_size), pygame.SRCALPHA).convert_alpha()
                 self.sprite_list[(i, j)].blit(self.sheet, (0,0), (i * tile_size, j * tile_size, tile_size, tile_size))
             

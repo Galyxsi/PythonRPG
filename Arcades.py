@@ -4,15 +4,22 @@ import random
 
 import Texthandlers as Txt
 
+# Snek
 class Snake:
     snakeBody = []
     validLocations = []
 
+    # Preset colors to use for snake
     snakeColors = [
+        # Green snake, red apple, neon
         [(0,90,0), (50,200,50), (255,0,0), (255,255,255), (0,0,0)],
+        # Arcade cabinet colors
         [(95,123,118), (135,157,163), (95,123,118), (135,157,163), (50,57,70)],
+        # Magenta
         [(255, 0, 255), (255, 100, 255), (255, 0, 255), (255, 100, 255), (50, 0, 50)],
+        # Cyan
         [(0, 255, 255), (100, 255, 255), (0, 255, 255), (100, 255, 255), (0, 50, 50)],
+        # Yellow
         [(255, 255, 0), (255, 255, 100), (255, 255, 0), (255, 255, 100), (50, 50, 0)],
     ]
 
@@ -148,10 +155,11 @@ class Minesweeper:
             for j in range(32):
                 if self.minefield[i][j] == -1:
                     mines += 1
-        print(mines)
+        #print(mines)
     
     def update(self, frame, input):
-        print(str(input["x"]) + ", " + str(input["y"]))
+        pass
+        #print(str(input["x"]) + ", " + str(input["y"]))
         
     def draw(self, screen):
         color_index = 2

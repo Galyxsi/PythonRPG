@@ -31,7 +31,7 @@ game_width, game_height = 256, 240
 
 # This is the actual Pygame window, split from the game screen to allow for any size window without any stretching
 desktop_size = pygame.display.get_desktop_sizes()[0]
-real_screen = pygame.display.set_mode((desktop_size[0] // 2, desktop_size[1] // 2), pygame.RESIZABLE)
+real_screen = pygame.display.set_mode((desktop_size[0] // 2, desktop_size[1] // 2), pygame.RESIZABLE, vsync=1)
 #real_screen = pygame.display.set_mode(pygame.display.list_modes()[0])
 
 # What the game actually gets rendered on
@@ -117,7 +117,8 @@ cur_map = Map.Maps.load("a")
 
 # Battle begin
 cur_battle = Bat.Battle(character_list)
-cur_battle.init_turn(cur_map)
+cur_battle.set_map(cur_map)
+cur_battle.init_turn()
 
 # Arcade begin
 cabinet = pygame.image.load("sprites/arcades/snake_cabinet.png").convert_alpha()
@@ -431,6 +432,9 @@ while True:
         spr_hud_bg.draw(8, 16 + i * 24, 48, 24, hud_screen)
 
     hud_screen.set_alpha(cur_hud_alpha)
+    #pygame.PixelArray(game_screen).replace((60,60,150), ((math.sin(frame / 10) + 1) / 2 * 128,0,(math.sin(frame / 10) + 1) / 2 * 128), 0.15, (1, 0, 1))
+    #pygame.gfxdraw.filled_circle(game_screen, 100, 100, 100, (0,0,0))
+    #hud_screen.set_at((5,5), "#FF0000")
     game_screen.blit(hud_screen, (game_width - cur_hud_x, 0))
 
     # Draw the game screen to the window
