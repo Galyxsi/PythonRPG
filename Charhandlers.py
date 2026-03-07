@@ -112,7 +112,7 @@ class Pathfinder:
                 if worse:
                     continue
                 
-                print(curNode["c"] + step_cost)
+                #print(curNode["c"] + step_cost)
                 #if floate == False:
                 if curNode["c"] + step_cost > limit and floate == False:
                     continue
@@ -120,7 +120,7 @@ class Pathfinder:
                 
         return [], {"normal": 0, "water": 0}
     
-    def FloodFill(start, tiles, move_type="4-dir", swim=0, limit=10, floate=0):
+    def FloodFill(start, tiles, move_type="4-dir", swim=0, limit=10, floate=0, minimum = 0):
         W, H = tiles.width, tiles.height
         
         def in_bounds(x, y):
@@ -177,7 +177,7 @@ class Pathfinder:
             x, y, parent, counts = curPos[0], curPos[1], curStt[0], curStt[1]
             #print(counts)
             for nx, ny in neighbors(x, y):
-                if not fullList.count((nx, ny)) > 50: 
+                if not fullList.count((nx, ny)) > 0: 
                     info = tile_info(nx, ny)
                     fullList.append((nx, ny))
                     
@@ -220,10 +220,14 @@ class Pathfinder:
                     limitedStat.append(((x, y), (moveCost, swimCost, floatCost)))
                         
                     #print("added: " + str((nx, ny)))
-                    if not (nx, ny) in validMovement and not (nx, ny) == start:
+                    totalMovement = fullStat[-1][1][0] + fullStat[-1][1][1] + fullStat[-1][1][2]
+                    print(floatCost, minimum)
+                    #print(totalMovement)
+                    if not (nx, ny) in validMovement and not (nx, ny) == start and floatCost >= minimum:
                         validMovement.append((nx, ny))
                         #print("move: " + str(moveCost) + ", swim: " + str(swimCost))
                         vMStat.append(((x, y), (moveCost, swimCost, floatCost)))
+                        
                     #print("added: " + str((nx, ny)))
                     
         return validMovement    
@@ -259,6 +263,7 @@ class Character:
         self.team = ""
         self.dir = 2
         self.movementVec = (0,0)
+        self.currentAttacks = []
         
         self.level = 100
 
@@ -325,7 +330,14 @@ class Character:
             for i in data["stats"]:
                 if i != "move":
                     self.stats[i] = Stat(i, data["stats"][i]["base"], data["stats"][i]["enhanced"], self.level)
-                    print(self.stats[i])
+                    #print(self.stats[i])
+                    
+            self.currentAttacks = []
+            if "attacks" in data:
+                for atk in data["attacks"]:
+                    if atk["lv"] < self.level:
+                        self.currentAttacks.append(atk["id"])
+                
                 #print(i)
     def walk(self, path, map, walkSpeed, collide=True):
         target = (round(path[0][0]) * 16, round(path[0][1]) * 16)
@@ -371,3 +383,6 @@ class Character:
         else:
             state = "Walk" + state
         screen.blit(self.sheet.animation(state, frame, 6), (self.x - cam[0], self.y - cam[1] - self.sheet.height // 2))
+        
+    def damage_calc(self, attack_power, opp_def, min_dam, rand):
+        return max(((((2 * self.level) / 5 + 2) * attack_power * (self.stats["atk"] / opp_def)) / 50 + 2) * rand, min_dam)

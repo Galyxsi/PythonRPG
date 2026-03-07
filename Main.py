@@ -19,6 +19,8 @@ import Charhandlers as Chr
 import Arcades as Arc
 # Battle System
 import Battlehandlers as Bat
+# UI
+import UIhandlers as UIX
 os.environ['SDL_AUDIODRIVER'] = 'dsp'
 
 pygame.init()
@@ -31,7 +33,7 @@ game_width, game_height = 256, 240
 
 # This is the actual Pygame window, split from the game screen to allow for any size window without any stretching
 desktop_size = pygame.display.get_desktop_sizes()[0]
-real_screen = pygame.display.set_mode((desktop_size[0] // 2, desktop_size[1] // 2), pygame.RESIZABLE)
+real_screen = pygame.display.set_mode((desktop_size[0] // 2, desktop_size[1] // 2), pygame.RESIZABLE, vsync=1)
 #real_screen = pygame.display.set_mode(pygame.display.list_modes()[0])
 
 # What the game actually gets rendered on
@@ -47,6 +49,9 @@ hud_alpha = 64
 hud_x = 8
 cur_hud_alpha = 64
 cur_hud_x = 8
+
+ui_window = UIX.Window(0, 0, 64, 64, "Test Window", "fullui.png", False)
+ui_window.set_theme([pygame.Color("#2F323DFF"), pygame.Color("#ABB1C7FF"), pygame.Color("#d7d7d7")], True)
 
 pygame.display.set_caption("PythonRPG")
 
@@ -70,7 +75,7 @@ character_list = [char, sandbag, badbag]
 character_turn = 0
 
 # This can either be overworld or battle.
-game_mode = "battle"
+game_mode = "overworld"
 
 clock = pygame.time.Clock()
 
@@ -117,7 +122,8 @@ cur_map = Map.Maps.load("a")
 
 # Battle begin
 cur_battle = Bat.Battle(character_list)
-cur_battle.init_turn(cur_map)
+cur_battle.set_map(cur_map)
+cur_battle.init_turn()
 
 # Arcade begin
 cabinet = pygame.image.load("sprites/arcades/snake_cabinet.png").convert_alpha()
@@ -431,7 +437,13 @@ while True:
         spr_hud_bg.draw(8, 16 + i * 24, 48, 24, hud_screen)
 
     hud_screen.set_alpha(cur_hud_alpha)
+    #pygame.PixelArray(game_screen).replace((60,60,150), ((math.sin(frame / 10) + 1) / 2 * 128,0,(math.sin(frame / 10) + 1) / 2 * 128), 0.15, (1, 0, 1))
+    #pygame.gfxdraw.filled_circle(game_screen, 100, 100, 100, (0,0,0))
+    #hud_screen.set_at((5,5), "#FF0000")
     game_screen.blit(hud_screen, (game_width - cur_hud_x, 0))
+
+    ui_window.update([(mouse_x, mouse_y), pygame.mouse.get_pressed()], (256, 240))
+    ui_window.render(game_screen)
 
     # Draw the game screen to the window
     real_screen.blit(scaled_screen, scaled_screen.get_rect(center=real_screen.get_rect().center))

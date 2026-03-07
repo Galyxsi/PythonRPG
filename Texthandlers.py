@@ -26,6 +26,7 @@ class Font:
         ":emptybox:": "\uE009",
         ":checkbox:": "\uE00A",
         ":spark:": "\uE00B",
+        "elipses": "\uE00D",
     }
 
     COLORS = {

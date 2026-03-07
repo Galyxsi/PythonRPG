@@ -1,0 +1,9 @@
+{
+  "id": "ranged_basic",
+  "name": "Attack",
+  "category": "attack",
+  "range": { "type": "flood", "min": 10, "max": 15 },
+  "effects": [
+    { "type": "damage", "power": 10, "min": 1 }
+  ]
+}

@@ -4,21 +4,29 @@ import random
 
 import Texthandlers as Txt
 
+# Snek
 class Snake:
     snakeBody = []
     validLocations = []
 
+    # Preset colors to use for snake
     snakeColors = [
+        # Green snake, red apple, neon
         [(0,90,0), (50,200,50), (255,0,0), (255,255,255), (0,0,0)],
+        # Arcade cabinet colors
         [(95,123,118), (135,157,163), (95,123,118), (135,157,163), (50,57,70)],
+        # Magenta
         [(255, 0, 255), (255, 100, 255), (255, 0, 255), (255, 100, 255), (50, 0, 50)],
+        # Cyan
         [(0, 255, 255), (100, 255, 255), (0, 255, 255), (100, 255, 255), (0, 50, 50)],
+        # Yellow
         [(255, 255, 0), (255, 255, 100), (255, 255, 0), (255, 255, 100), (50, 50, 0)],
     ]
 
     font = Txt.Font("arcadefont.png", 3,4, "1234567890", 5)
 
     def __init__(self):
+        # initiate blank board, random apple, and centered snake
         self.snakeBody = []
         for i in range(32 * 32):
             self.validLocations.append(i)
@@ -30,6 +38,7 @@ class Snake:
         self.started = False
         self.textFade = 0
 
+    # Basically init but again
     def reset(self):
         self.snakeBody = []
         self.snakeBodyLength = 5
@@ -40,7 +49,9 @@ class Snake:
         self.started = False
 
     def update(self, frame, input):
-
+        # Some redundant code to ensure inputs go through without input delay.
+        # Basically, curdir only updates when the game does, while dir is what is planned to input.
+        # This makes sure you can't turn around a full 180 in a frame too.
         if input[0] and self.curDir != 3:
             self.started = True
             self.dir = 1
@@ -54,15 +65,18 @@ class Snake:
             self.started = True
             self.dir = 0
 
+        # Main game runs at 60 fps, snake runs at 12
         if frame % 5 != 0 or not self.started:
             return
 
         self.curDir = self.dir
 
+        # Make a new piece of snake, and if the snake is longer than it's supposed to be, just get rid of a piece
         self.snakeBody.append(self.snakeHead)
         if len(self.snakeBody) > self.snakeBodyLength:
             self.snakeBody.pop(0)
 
+        # Movement based on te direction it's looking
         if self.dir == 0:
             self.snakeHead = (self.snakeHead[0] + 1, self.snakeHead[1])
         elif self.dir == 1:
@@ -72,10 +86,12 @@ class Snake:
         elif self.dir == 3:
             self.snakeHead = (self.snakeHead[0], self.snakeHead[1] + 1)
 
+        # If you hit yourself, the game ends.
         for body in self.snakeBody:
             if self.snakeHead == body:
                 self.reset()
-
+        # Due to popular demand, if you hit the wall, the game ends..
+        # I just wanted to have looping walls :(
         if self.snakeHead[0] < 0:
             self.snakeHead = (31, self.snakeHead[1])
             self.reset()
@@ -89,6 +105,8 @@ class Snake:
             self.snakeHead = (self.snakeHead[0], 0)
             self.reset()
 
+        # If you get the apple, it goes to a new place
+        # It's SUPPOSED to not be capable of going into the snake, but I guess I don't know what I'm doing here cause it don't work
         if self.snakeHead == self.apple:
             for i in range(32 * 32):
                 self.validLocations.append(i)
@@ -100,7 +118,7 @@ class Snake:
             self.textFade = 60
             
         
-
+    # Draws the snek to screen, also the apple, and the text
     def draw(self, screen):
         color_index = 1
         color1 = self.snakeColors[color_index][0]
@@ -110,24 +128,32 @@ class Snake:
         screen.fill(self.snakeColors[color_index][4])
 
         if self.textFade > 0:
+            # Man, this feels like a long function for something literally just saying "2" or something. Yet this comment is just as long, so idk ig.
             self.font.draw(screen, str(self.snakeBodyLength - 5), 1, 1, 1, (text_color[0],text_color[1],text_color[2],255 * (self.textFade / 60)), 1)
             self.textFade -= 1
 
         pygame.draw.rect(screen, color1, (self.snakeHead[0], self.snakeHead[1], 1, 1))
         for i, body in enumerate(self.snakeBody):
+            # The body is a gradient between two colors, drawn with this.
             pygame.draw.rect(screen, (color2[0] - (color2[0] - color1[0]) * (i / len(self.snakeBody)), color2[1] - (color2[1] - color1[1]) * (i / len(self.snakeBody)), color2[2] - (color2[2] - color1[2]) * (i / len(self.snakeBody))), (body[0], body[1], 1, 1))
         pygame.draw.rect(screen, applecolor, (self.apple[0], self.apple[1], 1, 1))
         
+# Mining away
+# Very unfinished, decided I had better things to do
 class Minesweeper:
     sweeperColors = [
+        # Testing colors
         [(255, 255, 255), (0,0,0), (128, 128, 128), (255,0,0), (0,255,0), (0,0,255), (255,0,255), (255,255,0), (0,255,255), (128,0,128)],
+        # tbh, I kinda forgot
         [(0,0,0), (0,0,255), (20, 190, 20), (180,40,40), (10,10,180), (185, 15, 15), (0, 90, 180), (255,255,255), (128, 128, 128), (255,255,255), (255,0,0)],
+        # Used colors
         [(0,0,0), (112, 121, 200), (86, 162, 174), (114, 193, 92), (129, 149, 41), (204, 125, 40), (204, 40, 108), (204, 40, 198), (148, 69, 255), (255,0,0)]
     ]
 
     def __init__(self):
+        # Just places a bunch of mines randomly
         self.minefield = [[(-1 if random.randint(0,100) - 10 <= 0 else 0) for _ in range(32)] for _ in range(32)]
-        #print(minefield)
+        # ..And then calculates the amount of adjacent mines for each tile to figure out the proper color to give them
         for i in range(32):
             for j in range(32):
                 if self.minefield[i][j] != -1:
@@ -142,6 +168,7 @@ class Minesweeper:
                                 nearby_mines += 1
                     self.minefield[i][j] = nearby_mines
     
+    # Counts the total mines in the board
     def countMines(self):
         mines = 0
         for i in range(32):

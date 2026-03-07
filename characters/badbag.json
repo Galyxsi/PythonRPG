@@ -13,6 +13,9 @@
     "spdef": {"base": 1, "enhanced": false},
     "spd": {"base": 1, "enhanced": false}
   },
+  "attacks": [
+      {"lv": 0, "id": "ranged_basic"}
+  ],
   "move": 20,
   "class": "new",
   "size": "medium"

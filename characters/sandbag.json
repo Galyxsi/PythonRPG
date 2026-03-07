@@ -13,6 +13,9 @@
     "spdef": {"base": 1, "enhanced": false},
     "spd": {"base": 1, "enhanced": false}
   },
+  "attacks": [
+      {"lv": 0, "id": "basic_attack"}
+  ],
   "move": 15,
   "swim": 5,
   "class": "new",
