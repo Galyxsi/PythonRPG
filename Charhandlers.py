@@ -113,6 +113,7 @@ class Pathfinder:
                     continue
                 
                 #print(curNode["c"] + step_cost)
+                #print(curNode["c"] + step_cost)
                 #if floate == False:
                 if curNode["c"] + step_cost > limit and floate == False:
                     continue
@@ -120,6 +121,7 @@ class Pathfinder:
                 
         return [], {"normal": 0, "water": 0}
     
+    def FloodFill(start, tiles, move_type="4-dir", swim=0, limit=10, floate=0, minimum = 0):
     def FloodFill(start, tiles, move_type="4-dir", swim=0, limit=10, floate=0, minimum = 0):
         W, H = tiles.width, tiles.height
         
@@ -178,6 +180,7 @@ class Pathfinder:
             #print(counts)
             for nx, ny in neighbors(x, y):
                 if not fullList.count((nx, ny)) > 0: 
+                if not fullList.count((nx, ny)) > 0: 
                     info = tile_info(nx, ny)
                     fullList.append((nx, ny))
                     
@@ -221,12 +224,17 @@ class Pathfinder:
                         
                     #print("added: " + str((nx, ny)))
                     totalMovement = fullStat[-1][1][0] + fullStat[-1][1][1] + fullStat[-1][1][2]
+                    #print(floatCost, minimum)
+                    #print(totalMovement)
+                    if not (nx, ny) in validMovement and not (nx, ny) == start and floatCost >= minimum:
+                    totalMovement = fullStat[-1][1][0] + fullStat[-1][1][1] + fullStat[-1][1][2]
                     print(floatCost, minimum)
                     #print(totalMovement)
                     if not (nx, ny) in validMovement and not (nx, ny) == start and floatCost >= minimum:
                         validMovement.append((nx, ny))
                         #print("move: " + str(moveCost) + ", swim: " + str(swimCost))
                         vMStat.append(((x, y), (moveCost, swimCost, floatCost)))
+                        
                         
                     #print("added: " + str((nx, ny)))
                     
@@ -263,6 +271,7 @@ class Character:
         self.team = ""
         self.dir = 2
         self.movementVec = (0,0)
+        self.currentAttacks = []
         self.currentAttacks = []
         
         self.level = 100
@@ -330,6 +339,14 @@ class Character:
             for i in data["stats"]:
                 if i != "move":
                     self.stats[i] = Stat(i, data["stats"][i]["base"], data["stats"][i]["enhanced"], self.level)
+                    #print(self.stats[i])
+                    
+            self.currentAttacks = []
+            if "attacks" in data:
+                for atk in data["attacks"]:
+                    if atk["lv"] < self.level:
+                        self.currentAttacks.append(atk["id"])
+                
                     #print(self.stats[i])
                     
             self.currentAttacks = []

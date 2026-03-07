@@ -175,10 +175,11 @@ class Minesweeper:
             for j in range(32):
                 if self.minefield[i][j] == -1:
                     mines += 1
-        print(mines)
+        #print(mines)
     
     def update(self, frame, input):
-        print(str(input["x"]) + ", " + str(input["y"]))
+        pass
+        #print(str(input["x"]) + ", " + str(input["y"]))
         
     def draw(self, screen):
         color_index = 2
