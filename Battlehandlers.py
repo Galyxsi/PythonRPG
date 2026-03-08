@@ -244,9 +244,7 @@ class Battle:
             
     def set_map(self, map):
         self.map = map
-        
-    
-        elif self.state == "ATK":
+        if self.state == "ATK":
             self.state = "MOVE"
             
     def set_map(self, map):

@@ -122,7 +122,6 @@ class Pathfinder:
         return [], {"normal": 0, "water": 0}
     
     def FloodFill(start, tiles, move_type="4-dir", swim=0, limit=10, floate=0, minimum = 0):
-    def FloodFill(start, tiles, move_type="4-dir", swim=0, limit=10, floate=0, minimum = 0):
         W, H = tiles.width, tiles.height
         
         def in_bounds(x, y):
@@ -180,7 +179,6 @@ class Pathfinder:
             #print(counts)
             for nx, ny in neighbors(x, y):
                 if not fullList.count((nx, ny)) > 0: 
-                if not fullList.count((nx, ny)) > 0: 
                     info = tile_info(nx, ny)
                     fullList.append((nx, ny))
                     
@@ -226,7 +224,7 @@ class Pathfinder:
                     totalMovement = fullStat[-1][1][0] + fullStat[-1][1][1] + fullStat[-1][1][2]
                     #print(floatCost, minimum)
                     #print(totalMovement)
-                    if not (nx, ny) in validMovement and not (nx, ny) == start and floatCost >= minimum:
+                    #if not (nx, ny) in validMovement and not (nx, ny) == start and floatCost >= minimum:
                     totalMovement = fullStat[-1][1][0] + fullStat[-1][1][1] + fullStat[-1][1][2]
                     print(floatCost, minimum)
                     #print(totalMovement)

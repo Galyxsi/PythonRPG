@@ -20,6 +20,9 @@ class Window:
         self.font = Txt.Font("uifont.png", 8, 8, ("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-*!.\uE00D "), 14)
         self.widgets = []
 
+    def get_button_sprite(self):
+        return self.atlas.button_spr
+
     def set_theme(self, colors, outline: bool = True):
         self.colors = colors
         self.outline = outline
@@ -42,10 +45,13 @@ class Window:
             self.atlas.draw_window(internal_x, self.y, self.width, self.height, surface, self.frameless)
         
         if not self.frameless:
-            truncated_title = self.title[:self.width // 8 - 2].strip()
+            truncated_title = self.title[:self.width // 8 - 2].strip().upper()
             if len(truncated_title) < len(self.title):
-                trunicated_title += "\uE00D"
-            self.font.draw(surface, truncated_title.upper(), internal_x + 2, self.y + 1, 1, self.colors[2], 0)
+                truncated_title += ":elipses:"
+            self.font.draw(surface, truncated_title, internal_x + 2, self.y + 1, 1, self.colors[2], 0)
+
+        for widget in self.widgets:
+            widget.render(internal_x + 2, internal_y + 2, surface)
 
     #Input example:
     # [(mouse_x, mouse_y), (mouse_leftclick, mouse_midclick, mouse_rightclick)]
@@ -71,6 +77,9 @@ class Window:
         self.width = round(min(max(16, self.width), screen_size[0]))
         self.height = round(min(max(16, self.height), screen_size[1]))
 
+        for widget in self.widgets:
+            widget.update(input)
+
     def set_atlas(self, atlas):
         self.atlas = Spr.UIAtlas(atlas)
 
@@ -81,6 +90,24 @@ class Frame:
     def __init__():
         pass
 
-class Button:
-    def __init__():
+class Widget:
+    def __init__(self):
         pass
+
+    def update(self, input):
+        pass
+
+    def render(self, surface):
+        pass
+
+class Button(Widget):
+    def __init__(self, width, height, sprite: Spr.NineSlice):
+        self.width = width
+        self.height = height
+        self.sprite = sprite
+
+    def update(self, surface):
+        pass
+
+    def render(self, x, y, screen):
+        self.sprite.draw(x, y, self.width, self.height, screen)

@@ -256,16 +256,24 @@ class NineSlice:
         for i in range(tile_height):
             for j in range(tile_width):
                 #if i != 0 and j != 0 and i != tile_height and j != tile_width:
-                if i != tile_height and j != tile_width:
+                if i == tile_height - 1 and j == tile_width - 1:
+                    screen.blit(self.sprite_list[(1,1)], (x + (j + 1) * self.tile_size - 1, y + (i + 1) * self.tile_size - 1))
+                else:
                     screen.blit(self.sprite_list[(1,1)], (x + (j + 1) * self.tile_size, y + (i + 1) * self.tile_size))
 
-                if i == 0 and j != tile_width:
-                    screen.blit(self.sprite_list[(1,0)], (x + (j + 1) * self.tile_size, y))
-                if i == tile_height - 1 and j != tile_width:
-                    screen.blit(self.sprite_list[(1,2)], (x + (j + 1) * self.tile_size, y + height - self.tile_size))
+                if i == 0:
+                    if j != tile_width - 1:
+                        screen.blit(self.sprite_list[(1,0)], (x + (j + 1) * self.tile_size, y))
+                    else:
+                        screen.blit(self.sprite_list[(1,0)], (x + (j + 1) * self.tile_size - 1, y))
+                if i == tile_height - 1:
+                    if j != tile_width - 1:
+                        screen.blit(self.sprite_list[(1,2)], (x + (j + 1) * self.tile_size, y + height - self.tile_size))
+                    else:
+                        screen.blit(self.sprite_list[(1,2)], (x + (j + 1) * self.tile_size - 1, y + height - self.tile_size))
             if i != tile_height:
-                screen.blit(self.sprite_list[(0,1)], (x, y + (i + 1) * self.tile_size))
-                screen.blit(self.sprite_list[(2,1)], (x + width - self.tile_size, y + (i + 1) * self.tile_size))
+                screen.blit(self.sprite_list[(0,1)], (x, y + (i + 1) * self.tile_size - 1))
+                screen.blit(self.sprite_list[(2,1)], (x + width - self.tile_size, y + (i + 1) * self.tile_size - 1))
             
         
         screen.blit(self.sprite_list[(0,0)], (x, y))
@@ -281,6 +289,8 @@ class UIAtlas:
         self.windowed_spr.set_image(self.atlas.subsurface(0,0, 8, 8), (0,0))
         self.windowed_spr.set_image(self.atlas.subsurface(8,0, 8, 8), (1,0))
         self.windowed_spr.set_image(self.atlas.subsurface(16,0, 8, 8), (2,0))
+
+        self.button_spr = NineSlice(None, 4, self.atlas.subsurface(24,16,12,12))
 
     def draw_window(self, x, y, width, height, screen, frameless=False):
         if frameless:
