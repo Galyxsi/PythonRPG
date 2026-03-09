@@ -1,5 +1,15 @@
 import pygame
 
+def txt_len(text):
+    text = Font.txt_color(Font.emoji(text))
+    return len(text)
+
+def txt_trun(text, lim):
+    text = Font.txt_color(Font.emoji(text))
+    if len(text) > lim:
+        return text[:lim] + ":elipses:"
+    else:
+        return text
 
 class Font:
     characters = (
@@ -30,13 +40,13 @@ class Font:
     }
 
     COLORS = {
-        ":cRed:": (255,0,0),
-        ":cGreen:": (0,255,0),
-        ":cBlue:": (0,0,255),
-        ":cMagenta:": (255,0,255),
-        ":cCyan:": (0,255,255),
-        ":cYellow:": (255,255,0),
-        ":cWhite:": (255,255,255),
+        ":cred:": (255,0,0),
+        ":cgree:": (0,255,0),
+        ":cblue:": (0,0,255),
+        ":cmagenta:": (255,0,255),
+        ":ccyan:": (0,255,255),
+        ":cyellow:": (255,255,0),
+        ":cwhite:": (255,255,255),
     }
     def __init__(self, image_path, char_w, char_h, chars, cols):
         self.sheet = pygame.image.load("sprites/ui/font/" + image_path).convert_alpha()
@@ -65,7 +75,7 @@ class Font:
         return image
 
     def draw(self, surface, text, x, y, scale=1, color=(255, 255, 255, 255), spacing=-1, linespacing=8):
-        self.sheet = pygame.image.load("sprites/ui/font/font.png").convert_alpha()
+        #self.sheet = pygame.image.load("sprites/ui/font/font.png").convert_alpha()
         cx, cy = x, y
         altered_text = Font.emoji(text)
         altered_text = self.color(altered_text, color[3])
@@ -99,10 +109,27 @@ class Font:
     def color(self, text, opacity):
         for color, rgb in Font.COLORS.items():
             index = text.find(color)
+            #print(color, col_len)
             if index != -1:
                 self.color_changes.append({"color": (rgb[0], rgb[1], rgb[2], opacity), "index": index})
             text = text.replace(color, "\uE00C")
         return text
+    
+    def txt_emoji(text):
+        trun_len = 0
+        mod_text = text
+        for emote, char in Font.PUA.items():
+            mod_text = mod_text.replace(emote, char)
+        trun_len = len(text) - len(mod_text)
+        return text, trun_len
+    
+    def txt_color(text):
+        trun_len = 0
+        mod_text = text
+        for color, rgb in Font.COLORS.items():
+            mod_text = mod_text.replace(color, "\uE00C")
+        trun_len = len(text) - len(mod_text)
+        return text, trun_len
     
 
 class Debug:

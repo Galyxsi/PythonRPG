@@ -50,7 +50,7 @@ hud_x = 8
 cur_hud_alpha = 64
 cur_hud_x = 8
 
-ui_window = UIX.Window(0, 0, 64, 64, "Test Window", "fullui.png", False)
+ui_window = UIX.Window(0, 0, 64, 64, "TEST WINDOW", "fullui.png", False)
 ui_window.set_theme([pygame.Color("#2F323DFF"), pygame.Color("#ABB1C7FF"), pygame.Color("#d7d7d7")], True)
 
 ui_window.add_widget(UIX.Button(24,12, ui_window.get_button_sprite()))

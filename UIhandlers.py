@@ -2,6 +2,16 @@ import pygame
 import Spritehandlers as Spr
 import Texthandlers as Txt
 
+class Widget:
+    def __init__(self):
+        pass
+
+    def update(self, input):
+        pass
+
+    def render(self, x, y, surface):
+        pass
+
 class Window:
     def __init__(self, x: int, y: int, width: int, height: int, title: str, atlas: str, frameless: bool = False):
         self.x = x
@@ -13,6 +23,7 @@ class Window:
         self.grabbed = False
         self.resize_grabbed = False
         self.grabbed_offset = (0, 0)
+        self.resize_grabbed_offset = (0, 0)
         self.size_offset = (0, 0)
         self.colors = [(0, 0, 0, 255), (255, 255, 255, 255), (255, 255, 255, 255)]
         self.outline = True
@@ -45,10 +56,14 @@ class Window:
             self.atlas.draw_window(internal_x, self.y, self.width, self.height, surface, self.frameless)
         
         if not self.frameless:
-            truncated_title = self.title[:self.width // 8 - 2].strip().upper()
+           #if Txt.txt_len(self.title) > self.width // 8 - 2:
+           #    truncated_title = Txt.txt_trun(self.title, self.width // 8 - 2)
+           #else:
+           #   truncated_title = self.title
+            truncated_title = self.title[:self.width // 8 - 2].strip()
             if len(truncated_title) < len(self.title):
                 truncated_title += ":elipses:"
-            self.font.draw(surface, truncated_title, internal_x + 2, self.y + 1, 1, self.colors[2], 0)
+            self.font.draw(surface, truncated_title, internal_x + 2, self.y + 1, 1, self.colors[2], 0, 0)
 
         for widget in self.widgets:
             widget.render(internal_x + 2, internal_y + 2, surface)
@@ -64,14 +79,14 @@ class Window:
             self.grabbed_offset = (input[0][0] - self.x,input[0][1] - self.y)
         if not self.resize_grabbed and not self.frameless and input[1][0] and input[0][0] > self.x + self.width - 8 and input[0][0] < self.x + self.width:
             self.resize_grabbed = True
-            self.grabbed_offset = (input[0][0], input[0][1])
+            self.resize_grabbed_offset = (input[0][0], input[0][1])
             self.size_offset = (self.width, self.height)
         if self.grabbed:
             self.x = input[0][0] - self.grabbed_offset[0]
             self.y = input[0][1] - self.grabbed_offset[1]
         elif self.resize_grabbed:
-            self.width = self.size_offset[0] + input[0][0] - self.grabbed_offset[0]
-            self.height = self.size_offset[1] + input[0][1] - self.grabbed_offset[1]
+            self.width = self.size_offset[0] + input[0][0] - self.resize_grabbed_offset[0]
+            self.height = self.size_offset[1] + input[0][1] - self.resize_grabbed_offset[1]
         self.x = round(min(max(0, self.x), screen_size[0] - self.width))
         self.y = round(min(max(0, self.y), screen_size[1] - self.height))
         self.width = round(min(max(16, self.width), screen_size[0]))
@@ -83,22 +98,14 @@ class Window:
     def set_atlas(self, atlas):
         self.atlas = Spr.UIAtlas(atlas)
 
-    def add_widget(self, widget):
+    def add_widget(self, widget: Widget):
         self.widgets.append(widget)
 
 class Frame:
     def __init__():
         pass
 
-class Widget:
-    def __init__(self):
-        pass
 
-    def update(self, input):
-        pass
-
-    def render(self, surface):
-        pass
 
 class Button(Widget):
     def __init__(self, width, height, sprite: Spr.NineSlice):
