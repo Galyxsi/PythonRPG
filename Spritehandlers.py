@@ -45,12 +45,14 @@ class Spritesheet:
 
     '''
 
-    def __init__(self, filename, frame_width, frame_height, anim_data=None):
+    def __init__(self, filename: str, frame_width, frame_height, anim_data=None):
 
         self.frame_width = frame_width
         self.frame_height = frame_height
-
-        self.sheet = pygame.image.load(filename).convert_alpha()
+        if type(filename) == str:
+            self.sheet = pygame.image.load(filename).convert_alpha()
+        else:
+            self.sheet = filename
 
         self.image_width = self.sheet.get_width()
         self.image_height = self.sheet.get_height()
@@ -63,7 +65,7 @@ class Spritesheet:
 
         self.extra_data = {}
         
-        if os.path.exists(filename.split(".")[0] + ".json"):
+        if type(filename) == str and os.path.exists(filename.split(".")[0] + ".json"):
             with open(filename.split(".")[0] + ".json", "r") as f:
                 self.extra_data = json.load(f)
 
@@ -172,15 +174,16 @@ class AdvancedSpritesheet():
     def get_image(self, index):
         cur_data = self.data[index]
         image = pygame.Surface((int(cur_data["frameWidth"]), int(cur_data["frameHeight"])), pygame.SRCALPHA).convert_alpha()
-        image.blit(self.image, (-1 * int(cur_data["frameX"]), -1 * int(cur_data["frameY"])), (int(cur_data["x"]), int(cur_data["y"]), int(cur_data["width"]), int(cur_data["height"])))
+        image.blit(self.image, (0,0), (int(cur_data["x"]), int(cur_data["y"]), int(cur_data["width"]), int(cur_data["height"])))
         self.height = int(cur_data["frameHeight"]) + int(cur_data["frameY"])
         self.width = int(cur_data["frameWidth"]) + int(cur_data["frameX"])
         #image = pygame.transform.scale(image, (64, 64))
+        offsets = [int(cur_data["frameX"]), int(cur_data["frameY"])]
         return image
         
     def animation(self, anim_name, frame, fps=12):
         if not anim_name in self.animData:
-            return
+            return pygame.Surface((0,0))
         if anim_name != self.current_anim:
             self.current_anim = anim_name
             self.animStartFrame = frame
@@ -192,6 +195,19 @@ class AdvancedSpritesheet():
         index = int((local_frame / 60) * fps) % len(cur_anim)
         return self.get_image(cur_anim[index])
         
+    def anim_offsets(self, anim_name, frame, fps=12):
+        if not anim_name in self.animData:
+            return [0, 0]
+        if anim_name != self.current_anim:
+            self.current_anim = anim_name
+            self.animStartFrame = frame
+
+        cur_anim = self.animData[anim_name]
+        local_frame = frame - self.animStartFrame
+        #
+        #frame %= 60
+        index = int((local_frame / 60) * fps) % len(cur_anim)
+        return [self.data[cur_anim[index]]["frameX"], self.data[cur_anim[index]]["frameY"]]
     
 
 class LayeredSprite:
@@ -281,6 +297,32 @@ class NineSlice:
         screen.blit(self.sprite_list[(0,2)], (x, y + height - self.tile_size))
         screen.blit(self.sprite_list[(2,2)], (x + width - self.tile_size, y + height - self.tile_size))
 
+class ThreeSlice:
+    def __init__(self, image, tilesize: int, vertical: bool):
+        self.sprite_list = {}
+        self.vertical = vertical
+        self.tilesize = tilesize
+        if vertical:
+            for i in range(image.get_height() // tilesize):
+                self.sprite_list[i] = pygame.Surface((tilesize, tilesize), pygame.SRCALPHA).convert_alpha()
+                self.sprite_list[i].blit(image, (0,0), (0, i * tilesize, tilesize, tilesize))
+        else:
+            for i in range(image.get_width() // tilesize):
+                self.sprite_list[i] = pygame.Surface((tilesize, tilesize), pygame.SRCALPHA).convert_alpha()
+                self.sprite_list[i].blit(image, (0,0), (i * tilesize, 0, tilesize, tilesize))
+
+    def draw(self, x, y, length, screen):
+        
+        if self.vertical:
+            for i in range(length // self.tilesize):
+                screen.blit(self.sprite_list[1], (x, y + i * self.tilesize))
+            screen.blit(self.sprite_list[2], (x, y + i * self.tilesize))
+        else:
+            for i in range(length // self.tilesize):
+                screen.blit(self.sprite_list[1], (x + i * self.tilesize, y))
+            screen.blit(self.sprite_list[2], (x + i * self.tilesize, y))
+        screen.blit(self.sprite_list[0], (x, y))
+
 class UIAtlas:
     def __init__(self, filename):
         self.atlas = pygame.image.load("sprites/ui/gui/" + filename).convert_alpha()
@@ -291,6 +333,13 @@ class UIAtlas:
         self.windowed_spr.set_image(self.atlas.subsurface(16,0, 8, 8), (2,0))
 
         self.button_spr = NineSlice(None, 4, self.atlas.subsurface(24,16,12,12))
+        self.button_high_spr = NineSlice(None, 4, self.atlas.subsurface(48,16,12,12))
+        self.button_click_spr = NineSlice(None, 4, self.atlas.subsurface(36,16,12,12))
+
+        self.horizontal_scroll_spr = ThreeSlice(self.atlas.subsurface(52,28, 12, 4), 4, False)
+        #self.vertical_scroll_spr = ThreeSlice(self.atlas.subsurface(8,32, 8, 8), 8, True)
+
+        self.scroll_button_spr = Spritesheet(self.atlas.subsurface(48, 28, 4, 4), 4, 4)
 
     def draw_window(self, x, y, width, height, screen, frameless=False):
         if frameless:

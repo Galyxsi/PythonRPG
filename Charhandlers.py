@@ -226,7 +226,7 @@ class Pathfinder:
                     #print(totalMovement)
                     #if not (nx, ny) in validMovement and not (nx, ny) == start and floatCost >= minimum:
                     totalMovement = fullStat[-1][1][0] + fullStat[-1][1][1] + fullStat[-1][1][2]
-                    print(floatCost, minimum)
+                    #print(floatCost, minimum)
                     #print(totalMovement)
                     if not (nx, ny) in validMovement and not (nx, ny) == start and floatCost >= minimum:
                         validMovement.append((nx, ny))

@@ -21,10 +21,15 @@ import Arcades as Arc
 import Battlehandlers as Bat
 # UI
 import UIhandlers as UIX
+# Mouse Cursor
+import Mousehandlers as Mou
+
+Mouse = Mou.Mouse()
+Mouse.set_sprite(Spr.AdvancedSpritesheet("sprites/ui/gui/cursor.png"))
+
 os.environ['SDL_AUDIODRIVER'] = 'dsp'
 
 pygame.init()
-
 
 # Screen initialisation
 game_width, game_height = 256, 240
@@ -53,7 +58,8 @@ cur_hud_x = 8
 ui_window = UIX.Window(0, 0, 64, 64, "TEST WINDOW", "fullui.png", False)
 ui_window.set_theme([pygame.Color("#2F323DFF"), pygame.Color("#ABB1C7FF"), pygame.Color("#d7d7d7")], True)
 
-ui_window.add_widget(UIX.Button(24,12, ui_window.get_button_sprite()))
+ui_window.add_widget(UIX.Button(2, 2, 24,12, ui_window.get_button_sprites()))
+ui_window.add_widget(UIX.Button(48, 2, 24,12, ui_window.get_button_sprites()))
 
 pygame.display.set_caption("PythonRPG")
 
@@ -108,16 +114,16 @@ frame = 0
 map_list = [
     "!default_test_map",
     "!lines",
-    #"ai_testing/!river_outpost",
-    #"ai_testing/!demo16x16",
-    #"ai_testing/!windsurf_test",
-    #"ai_testing/!island_outpost",
-    #"ai_testing/!custom_island",
-    #"ai_testing/!ruined_courtyard32x32",
-    #"ai_testing/!custom_map_rle",
-    #"ai_testing/!custom64",
+    "ai_testing/!river_outpost",
+    "ai_testing/!demo16x16",
+    "ai_testing/!windsurf_test",
+    "ai_testing/!island_outpost",
+    "ai_testing/!custom_island",
+    "ai_testing/!ruined_courtyard32x32",
+    "ai_testing/!custom_map_rle",
+    "ai_testing/!custom64",
     "ai_testing/!obsidian_oasis",
-    #"ai_testing/!dungeon"
+    "ai_testing/!dungeon"
 ]
 curMapID = 0
 cur_map = Map.Maps.load("a")
@@ -147,7 +153,7 @@ test2 = Spr.AdvancedSpritesheet("sprites/characters/playable/Witch.png")
 # Main game loop
 while True:
     
-    
+    Mouse.state = "Default"
 
     # Some arcade minigame stuff
     pygame.display.set_icon(mini_snake_screen)
@@ -283,7 +289,7 @@ while True:
                 # Numpad 6 reshuffles the map
                 elif event.key == pygame.K_KP_6:
                     last_few_maps.append(copy.deepcopy(cur_map))
-                    cur_map.dualLogMapA = [[random.randint(0,2) for _ in range(cur_map.width + 1)] for _ in range(cur_map.height + 1)] 
+                    cur_map.dualLogMapA = [[random.randint(0,9) for _ in range(cur_map.width + 1)] for _ in range(cur_map.height + 1)] 
                 # Numpad 9 brings back the previously loaded map
                 elif event.key == pygame.K_KP_9:
                     #print(last_few_maps)
@@ -442,10 +448,12 @@ while True:
     #pygame.PixelArray(game_screen).replace((60,60,150), ((math.sin(frame / 10) + 1) / 2 * 128,0,(math.sin(frame / 10) + 1) / 2 * 128), 0.15, (1, 0, 1))
     #pygame.gfxdraw.filled_circle(game_screen, 100, 100, 100, (0,0,0))
     #hud_screen.set_at((5,5), "#FF0000")
+
+    ui_window.update([pygame.mouse.get_pos(), pygame.mouse.get_pressed()], hud_screen.get_size(), hud_screen, (game_width - cur_hud_x, 0), scaled_screen)
+    ui_window.render(hud_screen)
     game_screen.blit(hud_screen, (game_width - cur_hud_x, 0))
 
-    ui_window.update([(mouse_x, mouse_y), pygame.mouse.get_pressed()], (256, 240))
-    ui_window.render(game_screen)
+    Mouse.render(game_screen, [mouse_x, mouse_y])
 
     # Draw the game screen to the window
     real_screen.blit(scaled_screen, scaled_screen.get_rect(center=real_screen.get_rect().center))
